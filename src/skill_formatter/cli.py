@@ -63,7 +63,12 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
 
     class LocalizedFormatter(RawDescriptionRichHelpFormatter):
         def add_usage(self, usage, actions, groups, prefix=None):  # type: ignore[no-untyped-def]
-            super().add_usage(usage, actions, groups, prefix=prefix or strings["usage"])
+            super().add_usage(
+                usage,
+                actions,
+                groups,
+                prefix=strings["usage"] if prefix is None else prefix,
+            )
 
     class LocalizedParser(argparse.ArgumentParser):
         def error(self, message: str) -> NoReturn:
@@ -79,6 +84,51 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     def parse_width(value: str) -> int:
         return _parse_width(value, lang)
 
+    def add_help_option(target: argparse.ArgumentParser) -> None:
+        target.add_argument("-h", "--help", action="help", help=strings["help"])
+
+    def add_language_options(
+        target: argparse.ArgumentParser, *, suppress_default: bool = False
+    ) -> None:
+        default = argparse.SUPPRESS if suppress_default else False
+        language = target.add_mutually_exclusive_group()
+        language.add_argument(
+            "--zh", action="store_true", default=default, help=strings["force_zh"]
+        )
+        language.add_argument(
+            "--en", action="store_true", default=default, help=strings["force_en"]
+        )
+
+    def set_titles(target: argparse.ArgumentParser, positional: str) -> None:
+        target._positionals.title = positional
+        target._optionals.title = strings["options"]
+
+    common = LocalizedParser(add_help=False)
+    common.add_argument("paths", nargs="*", metavar="PATH", help=strings["paths"])
+    common.add_argument(
+        "--lines",
+        action="append",
+        type=parse_line_range,
+        metavar="A:B",
+        help=strings["lines"],
+    )
+    common.add_argument(
+        "--line-width",
+        type=parse_width,
+        dest="line_width",
+        metavar="N",
+        help=strings["line_width"],
+    )
+    common.add_argument("--base-indent", type=int, metavar="N", help=strings["base_indent"])
+    common.add_argument("--stdin-path", metavar="PATH", help=strings["stdin_path"])
+    common.add_argument("--only", type=parse_categories, metavar="CATS", help=strings["only"])
+    common.add_argument("--skip", type=parse_categories, metavar="CATS", help=strings["skip"])
+    common.add_argument("--config", type=Path, metavar="PATH", help=strings["config"])
+    common.add_argument("--strict", action="store_true", help=strings["strict"])
+    common.add_argument("--best-effort", action="store_true", help=strings["best_effort"])
+    common.add_argument("-q", "--quiet", action="store_true", help=strings["quiet"])
+    common.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
+
     parser = LocalizedParser(
         prog="skillfmt",
         description=strings["description"],
@@ -86,54 +136,65 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         formatter_class=LocalizedFormatter,
         add_help=False,
     )
-    parser.add_argument("paths", nargs="*", metavar="PATH", help=strings["paths"])
-    parser.add_argument("-w", "--write", action="store_true", help=strings["write"])
-    parser.add_argument("--check", action="store_true", help=strings["check"])
-    parser.add_argument("--diff", action="store_true", help=strings["diff"])
-    parser.add_argument(
-        "--lines",
-        action="append",
-        type=parse_line_range,
-        metavar="A:B",
-        help=strings["lines"],
-    )
-    parser.add_argument(
-        "--line-width",
-        type=parse_width,
-        dest="line_width",
-        metavar="N",
-        help=strings["line_width"],
-    )
-    parser.add_argument("--base-indent", type=int, metavar="N", help=strings["base_indent"])
-    parser.add_argument("--stdin-path", metavar="PATH", help=strings["stdin_path"])
-    parser.add_argument("--only", type=parse_categories, metavar="CATS", help=strings["only"])
-    parser.add_argument("--skip", type=parse_categories, metavar="CATS", help=strings["skip"])
-    parser.add_argument("--config", type=Path, metavar="PATH", help=strings["config"])
-    parser.add_argument("--strict", action="store_true", help=strings["strict"])
-    parser.add_argument(
-        "--best-effort",
-        action="store_true",
-        help=strings["best_effort"],
-    )
-    parser.add_argument(
-        "--config-template",
-        action="store_true",
-        help=strings["config_template"],
-    )
-    parser.add_argument("-q", "--quiet", action="store_true", help=strings["quiet"])
-    parser.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
-    parser.add_argument("-h", "--help", action="help", help=strings["help"])
     parser.add_argument(
         "--version",
         action="version",
         version=f"skillfmt {__version__}",
         help=strings["version"],
     )
-    language = parser.add_mutually_exclusive_group()
-    language.add_argument("--zh", action="store_true", help=strings["force_zh"])
-    language.add_argument("--en", action="store_true", help=strings["force_en"])
-    parser._positionals.title = strings["positional"]
-    parser._optionals.title = strings["options"]
+    add_help_option(parser)
+    add_language_options(parser)
+    set_titles(parser, strings["commands"])
+
+    subparsers = parser.add_subparsers(
+        dest="command",
+        required=True,
+        title=strings["commands"],
+    )
+
+    format_parser = subparsers.add_parser(
+        "format",
+        parents=[common],
+        add_help=False,
+        help=strings["command_format"],
+        description=strings["format_description"],
+        epilog=strings["epilog"],
+        formatter_class=LocalizedFormatter,
+    )
+    set_titles(format_parser, strings["positional"])
+    format_parser.add_argument("-w", "--write", action="store_true", help=strings["write"])
+    add_language_options(format_parser, suppress_default=True)
+    add_help_option(format_parser)
+
+    for name, command_help, description in (
+        ("check", strings["command_check"], strings["check_description"]),
+        ("diff", strings["command_diff"], strings["diff_description"]),
+    ):
+        sub = subparsers.add_parser(
+            name,
+            parents=[common],
+            add_help=False,
+            help=command_help,
+            description=description,
+            epilog=strings["epilog"],
+            formatter_class=LocalizedFormatter,
+        )
+        set_titles(sub, strings["positional"])
+        add_language_options(sub, suppress_default=True)
+        add_help_option(sub)
+
+    config_parser = subparsers.add_parser(
+        "config-template",
+        add_help=False,
+        help=strings["command_config_template"],
+        description=strings["config_template_description"],
+        epilog=strings["config_template_epilog"],
+        formatter_class=LocalizedFormatter,
+    )
+    set_titles(config_parser, strings["positional"])
+    add_language_options(config_parser, suppress_default=True)
+    add_help_option(config_parser)
+
     return parser
 
 
@@ -277,42 +338,26 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser(_prescan_language(arguments))
     args = parser.parse_args(arguments)
     lang = "zh" if args.zh else "en" if args.en else detect_language()
+    if args.zh and args.en:
+        parser.error(tr(lang, "err_language_flags"))
+    if args.command == "config-template":
+        sys.stdout.write(render_template(lang))
+        return 0
+
+    write = getattr(args, "write", False)
     if args.only is not None and args.skip is not None:
         parser.error(tr(lang, "err_only_skip"))
     if args.strict and args.best_effort:
         parser.error(tr(lang, "err_strict_best_effort"))
     if args.quiet and args.verbose:
         parser.error(tr(lang, "err_quiet_verbose"))
-    if args.write and (args.check or args.diff):
-        parser.error(tr(lang, "err_write_conflict"))
-
-    if args.config_template:
-        formatting = (
-            args.paths
-            or args.write
-            or args.check
-            or args.diff
-            or args.lines
-            or args.line_width is not None
-            or args.base_indent is not None
-            or args.stdin_path
-            or args.only is not None
-            or args.skip is not None
-            or args.config is not None
-            or args.strict
-            or args.best_effort
-        )
-        if formatting:
-            parser.error(tr(lang, "err_config_template_conflict"))
-        sys.stdout.write(render_template(lang))
-        return 0
 
     stdin_mode = not args.paths or args.paths == ["-"]
     if "-" in args.paths and len(args.paths) > 1:
         parser.error(tr(lang, "err_dash_mixed"))
     if args.stdin_path and not stdin_mode:
         parser.error(tr(lang, "err_stdin_path"))
-    if args.write and stdin_mode:
+    if write and stdin_mode:
         parser.error(tr(lang, "err_write_stdin"))
     if args.lines and len(args.paths) > 1:
         parser.error(tr(lang, "err_lines_one_file"))
@@ -327,7 +372,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         if args.lines and len(paths) != 1:
             parser.error(tr(lang, "err_lines_one_file"))
-        if not (args.write or args.check or args.diff) and len(paths) != 1:
+        if args.command == "format" and not write and len(paths) != 1:
             parser.error(tr(lang, "err_multiple_need_action"))
 
     start = Path(args.stdin_path).parent if args.stdin_path else Path.cwd()
@@ -348,25 +393,25 @@ def main(argv: list[str] | None = None) -> int:
             text = raw.decode("utf-8-sig")
         except UnicodeDecodeError as exc:
             print(f"stdin: {exc}", file=sys.stderr)
-            if not (args.check or args.diff):
+            if args.command == "format":
                 sys.stdout.buffer.write(raw)
             return 2
         try:
             result = _format_text(text, args, options)
         except FormatError as exc:
             print(f"stdin: {exc}", file=sys.stderr)
-            if not (args.check or args.diff):
+            if args.command == "format":
                 sys.stdout.buffer.write(raw)
             return 2
         _print_warnings("stdin", result.warnings, args.quiet, lang)
-        if args.diff:
+        if args.command == "diff":
             diff = _diff("stdin", text, result.text)
             _print_verbose(args, "stdin", result.text != text, lang)
             if diff:
                 sys.stdout.write(diff)
                 return 1
             return 0
-        if args.check:
+        if args.command == "check":
             _print_verbose(args, "stdin", result.text != text, lang)
             if result.text != text:
                 print("stdin: " + tr(lang, "would_reformat"))
@@ -397,16 +442,16 @@ def main(argv: list[str] | None = None) -> int:
             _print_verbose(args, str(path), False, lang)
             continue
         changed += 1
-        if args.write:
+        if args.command == "format" and write:
             try:
                 _write_atomic(path, result.text)
             except OSError as exc:
                 print(f"{path}: {exc}", file=sys.stderr)
                 failures = 1
                 continue
-        elif args.diff:
+        elif args.command == "diff":
             sys.stdout.write(_diff(str(path), text, result.text))
-        elif args.check:
+        elif args.command == "check":
             print(f"{path}: {tr(lang, 'would_reformat')}")
         else:
             sys.stdout.write(result.text)
@@ -414,7 +459,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if failures:
         return 2
-    if (args.check or args.diff) and changed:
+    if args.command in {"check", "diff"} and changed:
         return 1
     return 0
 

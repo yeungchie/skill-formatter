@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildArgs, minimalEdit, runFormatter } from "../format";
+import { buildArgs, minimalEdit, runCommand } from "../format";
 
 test("buildArgs includes config, stdin path and range", () => {
   assert.deepEqual(
@@ -14,6 +14,7 @@ test("buildArgs includes config, stdin path and range", () => {
       timeoutMs: 1000,
     }),
     [
+      "format",
       "--config",
       "cfg.toml",
       "--stdin-path",
@@ -39,13 +40,11 @@ test("minimalEdit finds the changed span", () => {
 });
 
 test("runFormatter pipes stdin to stdout", async () => {
-  const result = await runFormatter(
-    {
-      executable: process.execPath,
-      extraArgs: ["-e", "process.stdin.pipe(process.stdout)"],
-      timeoutMs: 5000,
-    },
+  const result = await runCommand(
+    process.execPath,
+    ["-e", "process.stdin.pipe(process.stdout)"],
     "hello\n",
+    5000,
   );
   assert.equal(result.code, 0);
   assert.equal(result.stdout, "hello\n");

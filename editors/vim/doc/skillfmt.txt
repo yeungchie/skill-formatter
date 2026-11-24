@@ -14,8 +14,9 @@ COMMANDS
 
 FILTERS
 
-  :%!skillfmt           Format the whole buffer through the CLI filter.
-  :'<,'>!skillfmt       Format a fragment; the formatter auto-detects its base
+  :%!skillfmt format    Format the whole buffer through the CLI filter.
+  :'<,'>!skillfmt format
+                        Format a fragment; the formatter auto-detects its base
                         indentation and echoes the input unchanged on error.
 
 OPTIONS

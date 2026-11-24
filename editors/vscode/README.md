@@ -7,7 +7,7 @@ commands; the extension does not override `Ctrl+Shift+F`.
 
 The `skillfmt` executable must be on `PATH`, or set
 `skillFormatter.executablePath`. Range formatting is implemented by sending
-the whole document plus `--lines a:b`.
+the whole document plus `--lines a:b` to `skillfmt format`.
 
 ```sh
 npm install

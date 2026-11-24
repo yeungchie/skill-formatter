@@ -23,24 +23,31 @@ uv sync --dev
 ## 命令行
 
 ```sh
-skillfmt file.il                 # 输出到 stdout
-skillfmt -w file.il              # 原地写入
-skillfmt --check file.il         # 只检查，有差异 exit 1
-skillfmt --diff file.il          # 输出 unified diff
-cat file.il | skillfmt           # stdin 过滤模式
-skillfmt --lines 10:20 file.il   # 只格式化第 10-20 行
-skillfmt --check src/            # 递归检查目录下的 *.il / *.ils
-skillfmt --config-template > skillfmt.toml  # 打印配置模板
+skillfmt format file.il                 # 输出到 stdout
+skillfmt format -w file.il              # 原地写入
+skillfmt check file.il                  # 只检查，有差异 exit 1
+skillfmt diff file.il                   # 输出 unified diff
+cat file.il | skillfmt format           # stdin 过滤模式
+skillfmt format --lines 10:20 file.il   # 只格式化第 10-20 行
+skillfmt check src/                     # 递归检查目录下的 *.il / *.ils
+skillfmt config-template > skillfmt.toml  # 打印配置模板
 ```
 
-常用选项：
+子命令：
+
+| 子命令 | 说明 |
+| --- | --- |
+| `format` | 格式化文件或 stdin；默认写到 stdout，`-w` 原地写入 |
+| `check` | 报告需要格式化的输入；有差异 exit 1 |
+| `diff` | 输出 unified diff；有差异 exit 1 |
+| `config-template` | 把带注释的配置模板打印到 stdout |
+
+选项（`-w` 仅用于 `format`，其余由三个格式化子命令共用）：
 
 | 选项 | 说明 |
 | --- | --- |
 | `PATH` | 文件、目录或 `-`（stdin）；目录递归展开为 `*.il` / `*.ils` |
-| `-w, --write` | 原子写入；失败不写任何字节 |
-| `--check` | 不改文件；有差异 exit 1，全部已格式化 exit 0 |
-| `--diff` | 输出 unified diff；有差异 exit 1 |
+| `-w, --write` | 仅 `format`：原子写入；失败不写任何字节 |
 | `--lines A:B` | 1 基、含两端；可重复；支持 `A:` / `:B` |
 | `--line-width N` | 全局行宽上限；覆盖配置 `format.width`，默认 150 |
 | `--base-indent N` | 指定第一层起始缩进 |
@@ -48,16 +55,15 @@ skillfmt --config-template > skillfmt.toml  # 打印配置模板
 | `--only CATS` / `--skip CATS` | 只启用/跳过分类 |
 | `--strict` | 任一警告视为错误 |
 | `--best-effort` | 未确认语法保留原样（兼容预留） |
-| `--config-template` | 把带注释的配置模板打印到 stdout，不写文件 |
 | `-v, --verbose` | 向 stderr 输出配置来源与每个输入的状态 |
 
 退出码：`0` 成功；`1` check/diff 有差异；`2` 用法、IO、解析/校验失败或 strict 警告。
 
-`stdin` 格式化模式出错时会把输入原字节写回 stdout 并返回 2，保证 `:%!skillfmt` 与编辑器不会丢文本。
+`stdin` 格式化模式出错时会把输入原字节写回 stdout 并返回 2，保证 `:%!skillfmt format` 与编辑器不会丢文本。
 
-帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定，例如 `skillfmt --zh -h`。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
+帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定。它们可写在子命令前后，例如 `skillfmt --zh check` 与 `skillfmt check --zh` 等价。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
 
-帮助按“选项一句话说明 + 末尾退出码与语言规则”组织；只有 `--lines`、`--line-width`、`--config-template` 等非显然行为才展开说明。
+帮助按“选项一句话说明 + 末尾退出码与语言规则”组织；只有 `--lines`、`--line-width` 等非显然行为才展开说明。
 
 ## 格式分类
 
@@ -109,8 +115,8 @@ hanging = ["let", "letseq", "letrec", "quote"]
 生成模板：
 
 ```sh
-skillfmt --config-template > skillfmt.toml        # 英文注释
-skillfmt --zh --config-template > skillfmt.toml   # 中文注释
+skillfmt config-template > skillfmt.toml        # 英文注释
+skillfmt --zh config-template > skillfmt.toml   # 中文注释
 ```
 
 模板包含全部配置键的注释与默认值，只打印到 stdout，由用户自行重定向或保存；skillfmt 不写任何文件。注释语言随 `--zh` / `--en` 选择。
@@ -138,11 +144,11 @@ code --install-extension skillfmt-skill-formatter-0.1.0.vsix
 ```vim
 :Skillfmt              " 格式化整个缓冲区
 :'<,'>SkillfmtRange    " 只格式化选区所在的结构 form
-:%!skillfmt            " 原生过滤：整文件
-:'<,'>!skillfmt        " 原生过滤：选区（片段模式）
+:%!skillfmt format     " 原生过滤：整文件
+:'<,'>!skillfmt format " 原生过滤：选区（片段模式）
 ```
 
-`ftplugin` 在 `skillfmt` 可执行时设置 `formatprg=skillfmt`，可用 `gq`。插件不使用 Vim 8+ 的 `systemlist`、job、timer、JSON 等特性。
+`ftplugin` 在 `skillfmt` 可执行时设置 `formatprg=skillfmt format`，可用 `gq`。插件不使用 Vim 8+ 的 `systemlist`、job、timer、JSON 等特性。
 
 ## 安全模型
 

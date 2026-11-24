@@ -49,7 +49,7 @@ function! skillfmt#Format(all, first, last) abort
   let l:err_file = tempname()
   try
     call writefile(getline(1, '$'), l:in_file)
-    let l:cmd = shellescape(l:exe)
+    let l:cmd = shellescape(l:exe) . ' format'
     let l:extra = get(g:, 'skillfmt_args', '')
     if !empty(l:extra)
       let l:cmd .= ' ' . l:extra

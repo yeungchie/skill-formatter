@@ -22,7 +22,7 @@ export interface MinimalEdit {
 }
 
 export function buildArgs(options: FormatOptions): string[] {
-  const args: string[] = [];
+  const args: string[] = ["format"];
   if (options.configPath) {
     args.push("--config", options.configPath);
   }
@@ -36,9 +36,14 @@ export function buildArgs(options: FormatOptions): string[] {
   return args;
 }
 
-export function runFormatter(options: FormatOptions, text: string): Promise<RunResult> {
+export function runCommand(
+  executable: string,
+  args: string[],
+  text: string,
+  timeoutMs: number,
+): Promise<RunResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(options.executable, buildArgs(options), {
+    const child = spawn(executable, args, {
       windowsHide: true,
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -66,10 +71,19 @@ export function runFormatter(options: FormatOptions, text: string): Promise<RunR
     child.on("close", (code) => finish(code ?? 2));
     timer = setTimeout(() => {
       child.kill();
-      reject(new Error(`skillfmt timed out after ${options.timeoutMs} ms`));
-    }, options.timeoutMs);
+      reject(new Error(`skillfmt timed out after ${timeoutMs} ms`));
+    }, timeoutMs);
     child.stdin.end(text);
   });
+}
+
+export function runFormatter(options: FormatOptions, text: string): Promise<RunResult> {
+  return runCommand(
+    options.executable,
+    buildArgs(options),
+    text,
+    options.timeoutMs,
+  );
 }
 
 export function minimalEdit(before: string, after: string): MinimalEdit | null {
