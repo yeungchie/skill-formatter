@@ -120,10 +120,12 @@ unknown = "opaque"        # opaque | error | conservative
 [rules]
 inScheme = "flat"         # flat | indent
 case = "align"            # align | block
-hanging = ["let", "letseq", "letrec", "quote"]
+hanging = ["let", "letseq", "letrec", "prog", "case", "if", "when", "unless", "while", "foreach", "for", "quote"]
 ```
 
 `wrapping=true` 自动要求 `indent` 与 `spacing`；`comments=true` 自动要求 `indent`。
+
+`rules.hanging` 控制调用/特殊 form 的首参数是否留在头行；`procedure`、`lambda`、`defclass` 等定义的签名固定留在头行。
 
 配置命令：
 

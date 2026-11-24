@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
-from skill_formatter import format_source
+from skill_formatter import Options, format_source
+from skill_formatter.config import load_config
 
 
 @pytest.mark.parametrize(
@@ -32,6 +35,25 @@ from skill_formatter import format_source
 )
 def test_basic_layouts(source: str, expected: str) -> None:
     assert format_source(source).text == expected
+
+
+def test_hanging_controls_head_line() -> None:
+    source = "let((len i)\nlen = 1\n)"
+    assert format_source(source).text == "let((len i)\n    len = 1\n)\n"
+    assert format_source(source, Options(hanging=())).text == (
+        "let(\n    (len i)\n    len = 1\n)\n"
+    )
+    generic = 'foo("' + "a" * 20 + '" "' + "b" * 20 + '")'
+    assert format_source(generic, Options(width=40, hanging=("foo",))).text == (
+        'foo("' + "a" * 20 + '"\n    "' + "b" * 20 + '"\n)\n'
+    )
+
+
+def test_config_hanging_changes_layout(tmp_path: Path) -> None:
+    config = tmp_path / "skillfmt.toml"
+    config.write_text("[rules]\nhanging = []\n", encoding="utf-8")
+    result = format_source("let((len i)\nlen = 1\n)", load_config(config)).text
+    assert result == "let(\n    (len i)\n    len = 1\n)\n"
 
 
 def test_defclass_slots() -> None:

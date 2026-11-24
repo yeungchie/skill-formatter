@@ -293,7 +293,10 @@ def test_config_get_uses_defaults(tmp_path: Path) -> None:
     wrapping = run_cli(["--en", "config", "get", "categories.wrapping"], cwd=tmp_path)
     assert wrapping.stdout == "true\n"
     hanging = run_cli(["--en", "config", "get", "rules.hanging"], cwd=tmp_path)
-    assert hanging.stdout == '["let", "letseq", "letrec", "quote"]\n'
+    assert hanging.stdout == (
+        '["let", "letseq", "letrec", "prog", "case", "if", "when", "unless", '
+        '"while", "foreach", "for", "quote"]\n'
+    )
 
 
 def test_config_get_rejects_unknown_key(tmp_path: Path) -> None:

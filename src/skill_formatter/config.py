@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from .options import CATEGORIES, Options
+from .options import CATEGORIES, DEFAULT_HANGING, Options
 
 
 class ConfigError(Exception):
@@ -48,7 +48,7 @@ def _build_keys() -> dict[str, KeySpec]:
             "rules",
             "hanging",
             "list-str",
-            ("let", "letseq", "letrec", "quote"),
+            DEFAULT_HANGING,
         ),
     }
     for name in CATEGORIES:
@@ -272,8 +272,9 @@ inScheme = "flat"
 # clause on its own indented line.
 case = "align"
 
-# Special forms whose first argument stays on the head line.
-hanging = ["let", "letseq", "letrec", "quote"]
+# Call/special forms whose first argument stays on the head line. Definition
+# signatures always stay on the head line.
+hanging = @HANGING@
 """
 
 _TEMPLATE_ZH = """\
@@ -321,14 +322,16 @@ inScheme = "flat"
 # "align" 对齐单值 case 分支的键；"block" 让每个 case 分支独立成缩进行。
 case = "align"
 
-# 第一个参数保留在头行上的特殊 form。
-hanging = ["let", "letseq", "letrec", "quote"]
+# 首参数保留在头行上的调用/特殊 form；定义签名固定留在头行。
+hanging = @HANGING@
 """
 
 
 def render_template(lang: str) -> str:
     """Return a complete, loadable skillfmt.toml template."""
-    return _TEMPLATE_ZH if lang.lower().startswith("zh") else _TEMPLATE_EN
+    text = _TEMPLATE_ZH if lang.lower().startswith("zh") else _TEMPLATE_EN
+    hanging = format_config_value(DEFAULT_HANGING, CONFIG_KEYS["rules.hanging"])
+    return text.replace("@HANGING@", hanging)
 
 
 def _expect_keys(table: dict[str, Any], allowed: set[str], section: str) -> None:
@@ -400,7 +403,7 @@ def _options_from_data(data: dict[str, Any], config_path: Path | None) -> Option
         raise ConfigError('safety.unknown must be "opaque", "error" or "conservative"')
     in_scheme = rules.get("inScheme", "flat")
     case_mode = rules.get("case", "align")
-    hanging = rules.get("hanging", ["let", "letseq", "letrec", "quote"])
+    hanging = rules.get("hanging", list(DEFAULT_HANGING))
     if in_scheme not in {"flat", "indent"}:
         raise ConfigError('rules.inScheme must be "flat" or "indent"')
     if case_mode not in {"align", "block"}:

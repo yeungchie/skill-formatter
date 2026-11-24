@@ -400,7 +400,7 @@ def _active_config_path(raw: Path | None, cwd: Path, create: bool) -> Path | Non
 
 
 def _print_config_template(lang: str) -> None:
-    console = Console()
+    console = Console(soft_wrap=True)
     console.print(
         Syntax(
             render_template(lang).rstrip("\n"),

@@ -14,6 +14,21 @@ CATEGORIES: tuple[str, ...] = (
     "comments",
 )
 
+DEFAULT_HANGING: tuple[str, ...] = (
+    "let",
+    "letseq",
+    "letrec",
+    "prog",
+    "case",
+    "if",
+    "when",
+    "unless",
+    "while",
+    "foreach",
+    "for",
+    "quote",
+)
+
 UnknownPolicy = Literal["opaque", "error", "conservative"]
 
 
@@ -26,7 +41,7 @@ class Options:
     unknown: UnknownPolicy = "opaque"
     in_scheme: Literal["flat", "indent"] = "flat"
     case_mode: Literal["align", "block"] = "align"
-    hanging: tuple[str, ...] = ("let", "letseq", "letrec", "quote")
+    hanging: tuple[str, ...] = DEFAULT_HANGING
     output_style: Literal["c", "s"] = "c"
     config_path: str | None = None
     stdin_path: str | None = None

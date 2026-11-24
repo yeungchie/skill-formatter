@@ -418,7 +418,11 @@ class Renderer:
             return
         args = node.children
         self.out.write(node.value + "(")
-        self._render_bindings(args[0], indent)
+        if node.value in self.options.hanging:
+            self._render_bindings(args[0], indent)
+        else:
+            self.out.newline(indent + self.options.indent)
+            self._render_bindings(args[0], indent + self.options.indent)
         body = args[1:]
         if body:
             self.out.newline(indent + self.options.indent)
@@ -436,7 +440,7 @@ class Renderer:
         clauses: list[Node]
         if node.value == "case" and args:
             first = self.flat(args[0])
-            if first is None:
+            if first is None or node.value not in self.options.hanging:
                 self.out.newline(indent + self.options.indent)
                 self.render(args[0], indent + self.options.indent)
             else:
@@ -497,7 +501,7 @@ class Renderer:
             self.out.write("if(")
             if args:
                 cond = self.flat(args[0])
-                if cond is None:
+                if cond is None or "if" not in self.options.hanging:
                     self.out.newline(indent + self.options.indent)
                     self.render(args[0], indent + self.options.indent)
                 else:
@@ -511,7 +515,7 @@ class Renderer:
             return
         self.out.write("if(")
         cond = self.flat(args[0])
-        if cond is None:
+        if cond is None or "if" not in self.options.hanging:
             self.out.newline(indent + self.options.indent)
             self.render(args[0], indent + self.options.indent)
             self.out.newline(indent)
@@ -605,7 +609,7 @@ class Renderer:
             self.out.write(")")
             return
         first = self.flat(args[0])
-        if first is None or node.value in {"progn", "unwindProtect", "setq"}:
+        if first is None or node.value not in self.options.hanging:
             self.out.newline(indent + self.options.indent)
             self._render_block(args, indent + self.options.indent)
             self.out.newline(indent)
@@ -631,12 +635,18 @@ class Renderer:
             return
         self.out.write(node.value + "(")
         if node.children:
-            self.out.newline(indent + self.options.indent)
-            self._render_args(
-                node.children,
-                indent + self.options.indent,
-                one_per_line=node.value == "list",
-            )
+            args = node.children
+            first = self.flat(args[0]) if node.value in self.options.hanging else None
+            if first is not None:
+                self.out.write(first)
+                args = args[1:]
+            if args:
+                self.out.newline(indent + self.options.indent)
+                self._render_args(
+                    args,
+                    indent + self.options.indent,
+                    one_per_line=node.value == "list",
+                )
         self.out.newline(indent)
         self.out.write(")")
 
