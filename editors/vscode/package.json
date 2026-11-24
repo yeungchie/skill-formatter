@@ -3,20 +3,19 @@
   "displayName": "SKILL Formatter",
   "description": "Format Cadence SKILL source with skillfmt.",
   "version": "0.1.0",
-  "publisher": "skillfmt",
+  "publisher": "YEUNGCHIE",
   "license": "MIT",
   "engines": {
     "vscode": "^1.70.0"
   },
   "categories": ["Formatters"],
-  "activationEvents": ["onLanguage:skill"],
+  "activationEvents": ["onStartupFinished"],
   "main": "./out/src/extension.js",
   "contributes": {
     "languages": [
       {
         "id": "skill",
         "aliases": ["SKILL", "Skill"],
-        "extensions": [".il", ".ils"],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -30,11 +29,6 @@
         "title": "Skillfmt: Format Selection"
       }
     ],
-    "configurationDefaults": {
-      "[skill]": {
-        "editor.defaultFormatter": "skillfmt.skill-formatter"
-      }
-    },
     "configuration": {
       "title": "SKILL Formatter",
       "properties": {
@@ -63,12 +57,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable Format Selection."
-        },
-        "skillFormatter.languages": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": ["skill", "skillpp"],
-          "description": "Language ids that use this formatter."
         }
       }
     }

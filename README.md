@@ -150,7 +150,24 @@ skillfmt config trace                             # 查看生效文件
 
 ### VS Code
 
-扩展位于 `editors/vscode/`，注册空语言 id `skill`（`.il`/`.ils`）与格式化器；不提供语法高亮。使用 VS Code 标准 Format Document（Windows/Linux `Shift+Alt+F`）与 Format Selection（`Ctrl+K Ctrl+F`），不占用 `Ctrl+Shift+F`。
+扩展位于 `editors/vscode/`，声明 `skill` 语言并注册文档/选区格式化器；不自动关联 `.il`/`.ils`，也不设置默认 formatter。使用 VS Code 标准 Format Document（Windows/Linux `Shift+Alt+F`）与 Format Selection（`Ctrl+K Ctrl+F`），不占用 `Ctrl+Shift+F`。
+
+格式化器对所有语言开放，用户自己指定哪些语言使用本插件，例如在 `settings.json` 中：
+
+```json
+"[skill]": {
+  "editor.defaultFormatter": "YEUNGCHIE.skill-formatter"
+}
+```
+
+其他语言同理，把 `[skill]` 换成目标语言的 id 即可；也可以在 Format Document With... 中选择 `SKILL Formatter`。若希望 `.il`/`.ils` 自动识别为 `skill`，由用户自行配置：
+
+```json
+"files.associations": {
+  "*.il": "skill",
+  "*.ils": "skill"
+}
+```
 
 选区可以只覆盖一个 form，也可以跨多个顶层 form；格式化会扩展到选区命中的完整 form，未命中的文本逐字保留。`skillFormatter.enableRangeFormatting` 为 `false` 时不注册选区格式化，命令面板中的 Format Selection 也会提示已禁用。
 
@@ -163,14 +180,13 @@ skillfmt config trace                             # 查看生效文件
 | `skillFormatter.extraArgs` | 追加给 `skillfmt format` 的参数 |
 | `skillFormatter.timeoutMs` | 单次格式化超时（毫秒） |
 | `skillFormatter.enableRangeFormatting` | 是否启用 Format Selection |
-| `skillFormatter.languages` | 使用该格式化器的语言 id 列表 |
 
 ```sh
 cd editors/vscode
 npm install
 npm run compile
 npm run package
-code --install-extension skillfmt-skill-formatter-0.1.0.vsix
+code --install-extension skill-formatter-0.1.0.vsix
 ```
 
 扩展通过 PATH 上的 `skillfmt` 工作；可在设置中改 `skillFormatter.executablePath`。

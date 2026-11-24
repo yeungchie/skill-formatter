@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,24 @@ def test_vim74_static_compatibility() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_vscode_manifest_declares_skill_without_file_associations() -> None:
+    manifest = json.loads(
+        (ROOT / "editors" / "vscode" / "package.json").read_text(encoding="utf-8")
+    )
+    contributes = manifest["contributes"]
+    languages = contributes["languages"]
+    assert manifest["publisher"] == "YEUNGCHIE"
+    assert manifest["activationEvents"] == ["onStartupFinished"]
+    assert len(languages) == 1
+    assert languages[0]["id"] == "skill"
+    assert "extensions" not in languages[0]
+    assert "configurationDefaults" not in contributes
+    assert "skillFormatter.languages" not in contributes["configuration"]["properties"]
+    assert ".il" not in json.dumps(contributes)
+    assert ".ils" not in json.dumps(contributes)
+    assert (ROOT / "editors" / "vscode" / "language-configuration.json").is_file()
 
 
 def test_vim_headless_smoke() -> None:

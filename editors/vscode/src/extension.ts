@@ -65,6 +65,10 @@ async function formatDocument(
 
 export function activate(context: vscode.ExtensionContext): void {
   let providers: vscode.Disposable[] = [];
+  const documentSelector: vscode.DocumentSelector = [
+    { scheme: "file" },
+    { scheme: "untitled" },
+  ];
 
   const registerProviders = (): void => {
     for (const provider of providers) {
@@ -72,23 +76,19 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     providers = [];
     const config = vscode.workspace.getConfiguration("skillFormatter");
-    const languages = config.get<string[]>("languages", ["skill", "skillpp"]);
     const enableRange = config.get<boolean>("enableRangeFormatting", true);
-    for (const language of languages) {
-      const selector = { language };
+    providers.push(
+      vscode.languages.registerDocumentFormattingEditProvider(documentSelector, {
+        provideDocumentFormattingEdits: (document) => formatDocument(document),
+      }),
+    );
+    if (enableRange) {
       providers.push(
-        vscode.languages.registerDocumentFormattingEditProvider(selector, {
-          provideDocumentFormattingEdits: (document) => formatDocument(document),
+        vscode.languages.registerDocumentRangeFormattingEditProvider(documentSelector, {
+          provideDocumentRangeFormattingEdits: (document, range) =>
+            formatDocument(document, range),
         }),
       );
-      if (enableRange) {
-        providers.push(
-          vscode.languages.registerDocumentRangeFormattingEditProvider(selector, {
-            provideDocumentRangeFormattingEdits: (document, range) =>
-              formatDocument(document, range),
-          }),
-        );
-      }
     }
   };
 
@@ -97,10 +97,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     { dispose: () => providers.forEach((provider) => provider.dispose()) },
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (
-        event.affectsConfiguration("skillFormatter.languages") ||
-        event.affectsConfiguration("skillFormatter.enableRangeFormatting")
-      ) {
+      if (event.affectsConfiguration("skillFormatter.enableRangeFormatting")) {
         registerProviders();
       }
     }),
