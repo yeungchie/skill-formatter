@@ -36,6 +36,14 @@ def test_stdin_filter() -> None:
     assert 'procedure(foo(a "t")\n    a = 1\n)\n' == result.stdout
 
 
+def test_stdin_eof_is_empty_input() -> None:
+    for command in ("format", "check", "diff"):
+        result = run_cli([command], "")
+        assert result.returncode == 0
+        assert result.stdout == ""
+        assert result.stderr == ""
+
+
 def test_stdin_check() -> None:
     result = run_cli(
         ["check"],

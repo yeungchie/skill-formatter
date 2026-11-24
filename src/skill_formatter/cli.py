@@ -369,6 +369,14 @@ def _reconfigure_stdio() -> None:
             cast(Any, stream).reconfigure(encoding="utf-8", errors="replace", newline="\n")
 
 
+def _read_stdin() -> bytes:
+    """Read stdin until EOF; closing the input (Ctrl+D) ends the input."""
+    try:
+        return sys.stdin.buffer.read()
+    except (OSError, ValueError):
+        return b""
+
+
 def _diff(path: str, before: str, after: str) -> str:
     return "".join(
         difflib.unified_diff(
@@ -505,7 +513,7 @@ def main(argv: list[str] | None = None) -> int:
             print(tr(lang, "verbose_no_config"), file=sys.stderr)
 
     if stdin_mode:
-        raw = sys.stdin.buffer.read()
+        raw = _read_stdin()
         try:
             text = raw.decode("utf-8-sig")
         except UnicodeDecodeError as exc:
