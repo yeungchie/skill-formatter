@@ -92,6 +92,8 @@ def test_help_is_stable_without_color() -> None:
     assert result.returncode == 0
     assert "Usage: skillfmt format" in result.stdout
     assert "--line-width" in result.stdout
+    assert "--best-effort" not in result.stdout
+    assert "Reserved" not in result.stdout
     assert "\x1b[" not in result.stdout
 
 
@@ -184,28 +186,30 @@ def test_forced_language_affects_check_message() -> None:
     assert "需要重新格式化" in result.stdout
 
 
-def test_help_documents_exit_status_and_language_scope() -> None:
+def test_help_introduces_tool_and_commands() -> None:
     result = run_cli(["--en", "-h"], env_extra={"COLUMNS": "100"})
     assert result.returncode == 0
-    assert len(result.stdout.splitlines()) <= 60
-    assert "Exit status:" in result.stdout
-    assert "Language:" in result.stdout
-    assert "only help and diagnostics" in result.stdout
+    assert len(result.stdout.splitlines()) <= 45
+    assert "Conservative formatter for Cadence SKILL source." in result.stdout
+    assert "Format files or stdin, check for differences" in result.stdout
+    assert "Commands:" in result.stdout
     assert "inspect or update configuration" in result.stdout
     assert "config-template" not in result.stdout
-    assert "Output channels:" not in result.stdout
+    assert "Exit status:" not in result.stdout
+    assert "Language:" not in result.stdout
 
 
-def test_help_documents_exit_status_and_language_scope_in_chinese() -> None:
+def test_help_introduces_tool_and_commands_in_chinese() -> None:
     result = run_cli(["--zh", "-h"], env_extra={"COLUMNS": "100"})
     assert result.returncode == 0
-    assert len(result.stdout.splitlines()) <= 60
-    assert "退出码:" in result.stdout
-    assert "语言:" in result.stdout
-    assert "仅影响帮助与诊断" in result.stdout
+    assert len(result.stdout.splitlines()) <= 45
+    assert "保守格式化 Cadence SKILL 源码。" in result.stdout
+    assert "支持格式化文件/stdin、检查差异" in result.stdout
+    assert "命令" in result.stdout
     assert "查看或修改配置" in result.stdout
     assert "config-template" not in result.stdout
-    assert "输出通道:" not in result.stdout
+    assert "退出码:" not in result.stdout
+    assert "语言:" not in result.stdout
 
 
 def test_config_template_is_loadable(tmp_path: Path) -> None:

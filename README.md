@@ -63,7 +63,7 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 
 帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定。它们可写在子命令前后，例如 `skillfmt --zh check` 与 `skillfmt check --zh` 等价。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
 
-帮助按“选项一句话说明 + 末尾退出码与语言规则”组织；只有 `--lines`、`--line-width` 等非显然行为才展开说明。
+帮助只介绍工具用途、子命令与选项；退出码、语言检测和实现取舍等细节留在本文档。
 
 `config` 子命令：
 

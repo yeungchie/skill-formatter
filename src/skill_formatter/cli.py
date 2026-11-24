@@ -136,14 +136,13 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     common.add_argument("--skip", type=parse_categories, metavar="CATS", help=strings["skip"])
     common.add_argument("--config", type=Path, metavar="PATH", help=strings["config"])
     common.add_argument("--strict", action="store_true", help=strings["strict"])
-    common.add_argument("--best-effort", action="store_true", help=strings["best_effort"])
+    common.add_argument("--best-effort", action="store_true", help=argparse.SUPPRESS)
     common.add_argument("-q", "--quiet", action="store_true", help=strings["quiet"])
     common.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
 
     parser = LocalizedParser(
         prog="skillfmt",
         description=strings["description"],
-        epilog=strings["epilog"],
         formatter_class=LocalizedFormatter,
         add_help=False,
     )
@@ -169,7 +168,6 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         add_help=False,
         help=strings["command_format"],
         description=strings["format_description"],
-        epilog=strings["epilog"],
         formatter_class=LocalizedFormatter,
     )
     set_titles(format_parser, strings["positional"])
@@ -187,7 +185,6 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
             add_help=False,
             help=command_help,
             description=description,
-            epilog=strings["epilog"],
             formatter_class=LocalizedFormatter,
         )
         set_titles(sub, strings["positional"])
@@ -199,7 +196,6 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         add_help=False,
         help=strings["command_config"],
         description=strings["config_description"],
-        epilog=strings["config_epilog"],
         formatter_class=LocalizedFormatter,
     )
     set_titles(config_parser, strings["commands"])
@@ -230,7 +226,6 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
             add_help=False,
             help=help_text,
             description=description,
-            epilog=strings["config_epilog"],
             formatter_class=LocalizedFormatter,
         )
         set_titles(leaf, strings["positional"])

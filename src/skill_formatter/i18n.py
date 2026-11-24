@@ -18,8 +18,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "version": "show version and exit",
         "description": (
             "Conservative formatter for Cadence SKILL source.\n\n"
-            "Only whitespace and call-bracket placement change; tokens, comments and\n"
-            "unsupported top-level forms are preserved."
+            "Format files or stdin, check for differences, print diffs, and manage configuration."
         ),
         "command_format": "format files or stdin",
         "command_check": "report files that need formatting",
@@ -30,38 +29,27 @@ TEXTS: dict[str, dict[str, str]] = {
         "diff_description": "Print unified diffs for files or stdin that need formatting.",
         "config_description": "Inspect or update configuration.",
         "paths": (
-            "Input file or directory ('-' = stdin). Directories are searched recursively for "
-            "*.il and *.ils; with no PATH, stdin is read."
+            "Input file or directory ('-' = stdin); directories recurse into *.il and *.ils."
         ),
-        "write": "Rewrite changed files in place; replace atomically after verification.",
+        "write": "Rewrite changed files in place.",
         "lines": (
-            "Format only forms covered by lines A:B (1-based, inclusive; 'A:' and ':B' are "
-            "open-ended; repeatable). One input only; outside bytes and surrounding indentation "
-            "are preserved."
+            "Format only forms covered by lines A:B (1-based, inclusive; 'A:' and ':B' "
+            "open-ended; repeatable). One input only."
         ),
         "line_width": (
             "Maximum output line width, including indentation (default 150, minimum 20). "
             "Long lists put each element on its own line."
         ),
-        "base_indent": (
-            "Indent of the outermost form (files default to 0; stdin without --lines reuses its "
-            "smallest leading indent)."
-        ),
-        "stdin_path": "Path stdin represents, used to locate skillfmt.toml and label diagnostics.",
+        "base_indent": "Indent of the outermost form.",
+        "stdin_path": "Path stdin represents, used to locate skillfmt.toml.",
         "only": "Only the given categories (names are listed under --skip).",
         "skip": (
             "Skip categories: eol, blank-lines, indent, spacing, wrapping, comments. "
             "Skipping wrapping keeps original line breaks."
         ),
         "config": "Read settings from PATH instead of searching for skillfmt.toml.",
-        "config_file": (
-            "Config file to read or update; default: discover skillfmt.toml from the current "
-            "directory."
-        ),
-        "strict": "Treat unsupported-syntax warnings as errors (no write).",
-        "best_effort": (
-            "Reserved whitespace-only fallback; currently keeps whole top-level forms unchanged."
-        ),
+        "config_file": "Config file to read or update.",
+        "strict": "Treat unsupported-syntax warnings as errors.",
         "quiet": "Do not print unsupported-syntax warnings.",
         "verbose": "Print config source and per-input status to stderr.",
         "config_template": "print a commented skillfmt.toml template",
@@ -72,23 +60,6 @@ TEXTS: dict[str, dict[str, str]] = {
         "config_value": "value; use 'unset' to remove the key",
         "force_zh": "Force Chinese help and diagnostics.",
         "force_en": "Force English help and diagnostics.",
-        "epilog": (
-            "Exit status:\n"
-            "  0  success or no differences\n"
-            "  1  check or diff found differences\n"
-            "  2  usage, I/O, parse, verification or strict-warning error\n"
-            "\n"
-            "Formatted text or a diff goes to stdout; diagnostics go to stderr. On stdin failure\n"
-            "the original bytes are echoed to stdout, so :%!skillfmt format never loses text.\n"
-            "Language: --zh/--en are mutually exclusive, override locale detection, and affect\n"
-            "only help and diagnostics."
-        ),
-        "config_epilog": (
-            "Use --config after get, set or trace to target a file. set updates the\n"
-            "discovered file or creates skillfmt.toml in the current directory. Keys use\n"
-            "dotted names such as format.width, categories.wrapping, safety.unknown or\n"
-            "rules.hanging."
-        ),
         "warning_label": "warning",
         "would_reformat": "would reformat",
         "error_label": "error",
@@ -124,7 +95,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "version": "显示版本号并退出",
         "description": (
             "保守格式化 Cadence SKILL 源码。\n\n"
-            "只改空白与调用括号位置，token、注释正文与不支持的顶层 form 保持原样。"
+            "支持格式化文件/stdin、检查差异、输出 diff 与管理配置。"
         ),
         "command_format": "格式化文件或 stdin",
         "command_check": "报告需要格式化的文件",
@@ -134,23 +105,22 @@ TEXTS: dict[str, dict[str, str]] = {
         "check_description": "报告文件或 stdin 中需要格式化的内容；有差异退出 1。",
         "diff_description": "为需要格式化的文件或 stdin 输出 unified diff。",
         "config_description": "查看或修改配置。",
-        "paths": "输入文件或目录（'-' 表示 stdin）。目录递归查找 *.il/*.ils；无 PATH 时读 stdin。",
-        "write": "原地改写有变化的文件；校验通过后原子替换。",
+        "paths": "输入文件或目录（'-' 表示 stdin）；目录递归查找 *.il/*.ils。",
+        "write": "原地改写有变化的文件。",
         "lines": (
             "只格式化第 A:B 行覆盖的 form（1 基、含两端，'A:'/':B' 为开放区间，可重复）。"
-            "只允许一个输入；选区外字节与整体缩进保持不变。"
+            "只允许一个输入。"
         ),
         "line_width": (
             "整行输出宽度上限，含缩进（默认 150，最小 20）。超长 list 的每个元素独占一行。"
         ),
-        "base_indent": "最外层 form 的缩进（文件默认 0；stdin 未用 --lines 时沿用最小行首缩进）。",
-        "stdin_path": "stdin 对应的文件路径，用于查找 skillfmt.toml 与标注诊断。",
+        "base_indent": "最外层 form 的缩进。",
+        "stdin_path": "stdin 对应的文件路径，用于查找 skillfmt.toml。",
         "only": "只启用给定分类（名称见 --skip）。",
         "skip": "跳过：eol/blank-lines/indent/spacing/wrapping/comments；关闭 wrapping 保留换行。",
         "config": "从 PATH 读取配置，不再向上查找 skillfmt.toml。",
-        "config_file": "要读取或写入的配置文件；默认从当前目录向上查找 skillfmt.toml。",
-        "strict": "把未支持语法警告视为错误（不写文件）。",
-        "best_effort": "预留的纯空白回退；目前仍原样保留整个顶层 form。",
+        "config_file": "要读取或写入的配置文件。",
+        "strict": "把未支持语法警告视为错误。",
         "quiet": "不输出未支持语法警告。",
         "verbose": "向 stderr 输出配置来源与每个输入的状态。",
         "config_template": "打印带注释的 skillfmt.toml 模板",
@@ -161,21 +131,6 @@ TEXTS: dict[str, dict[str, str]] = {
         "config_value": "值；'unset' 表示删除该键",
         "force_zh": "强制中文帮助与诊断。",
         "force_en": "强制英文帮助与诊断。",
-        "epilog": (
-            "退出码:\n"
-            "  0  成功或无差异\n"
-            "  1  check 或 diff 发现差异\n"
-            "  2  用法、IO、解析、校验或 strict 警告等错误\n"
-            "\n"
-            "格式化文本或 diff 输出到 stdout，诊断信息输出到 stderr。stdin 失败时原字节\n"
-            "回显到 stdout，保证 :%!skillfmt format 等编辑器过滤器不丢文本。\n"
-            "语言: --zh/--en 互斥，覆盖自动检测，仅影响帮助与诊断。"
-        ),
-        "config_epilog": (
-            "get/set/trace 的 --config 用于指定文件。set 更新发现的文件，没有时在当前\n"
-            "目录创建 skillfmt.toml。键名使用点号形式，如 format.width、categories.wrapping、\n"
-            "safety.unknown、rules.hanging。"
-        ),
         "warning_label": "警告",
         "would_reformat": "需要重新格式化",
         "error_label": "错误",
