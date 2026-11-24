@@ -13,115 +13,64 @@ TEXTS: dict[str, dict[str, str]] = {
         "usage": "Usage: ",
         "positional": "Positional Arguments",
         "options": "Options",
-        "help": "show this help message and exit with status 0",
-        "version": "show the version number and exit with status 0",
+        "help": "show this help and exit",
+        "version": "show version and exit",
         "description": (
             "Conservative formatter for Cadence SKILL source.\n\n"
-            "Reads UTF-8 input, rewrites whitespace and call-bracket placement, and keeps\n"
-            "every token and comment unchanged. Reader syntax it does not understand is\n"
-            "preserved byte-for-byte at the top-level form.\n\n"
-            "Without --write, --check or --diff, one input is formatted to standard output."
+            "Only whitespace and call-bracket placement change; tokens, comments and\n"
+            "unsupported top-level forms are preserved. Reads stdin when PATH is absent or '-'."
         ),
         "paths": (
-            "Input file, directory, or '-' for stdin. Directories are searched recursively "
-            "for *.il and *.ils files. With no PATH, stdin is read and the result is written "
-            "to stdout."
+            "Input file or directory ('-' = stdin). Directories are searched recursively for "
+            "*.il and *.ils; with no PATH, stdin is read."
         ),
-        "write": (
-            "Rewrite each changed file in place. A file is replaced atomically only after the "
-            "output re-parses and matches the input structure and comments. Exit 0 on success, "
-            "2 on any failure; cannot be used with stdin, --check or --diff."
-        ),
-        "check": (
-            "Do not write. Print a 'would reformat' line for every file that differs; exit 1 "
-            "if any file differs and 0 if all input is already formatted."
-        ),
-        "diff": (
-            "Do not write. Print a unified diff for every changed file to stdout; exit 1 if "
-            "any file differs and 0 otherwise."
-        ),
+        "write": "Rewrite changed files in place; replace atomically after verification.",
+        "check": "Do not write; report files that differ.",
+        "diff": "Do not write; print a unified diff.",
         "lines": (
-            "Format only the form(s) covered by lines A:B, 1-based and inclusive. 'A:' runs to "
-            "the end, ':B' starts at line 1, and the option may be repeated. Exactly one input "
-            "is allowed; all bytes outside the selected forms are left untouched and the "
-            "surrounding indentation is kept."
+            "Format only forms covered by lines A:B (1-based, inclusive; 'A:' and ':B' are "
+            "open-ended; repeatable). One input only; outside bytes and surrounding indentation "
+            "are preserved."
         ),
         "line_width": (
-            "Maximum width of every output line, including indentation. Longer constructs wrap; "
-            "list elements each get their own line. Defaults to format.width (150); minimum 20."
+            "Maximum output line width, including indentation (default 150, minimum 20). "
+            "Long lists put each element on its own line."
         ),
         "base_indent": (
-            "Indentation of the outermost form, overriding format.base_indent. Files default to "
-            "0; stdin without --lines reuses the smallest leading indent found in the input."
+            "Indent of the outermost form (files default to 0; stdin without --lines reuses its "
+            "smallest leading indent)."
         ),
-        "stdin_path": (
-            "Path that stdin represents. Used to locate skillfmt.toml and to label diagnostics. "
-            "Valid only when reading stdin."
-        ),
-        "only": (
-            "Comma-separated categories to enable: eol, blank-lines, indent, spacing, wrapping, "
-            "comments. All other categories are disabled. Cannot be combined with --skip."
-        ),
+        "stdin_path": "Path stdin represents, used to locate skillfmt.toml and label diagnostics.",
+        "only": "Only the given categories (names are listed under --skip).",
         "skip": (
-            "Comma-separated categories to disable. Skipping 'wrapping' keeps the original line "
-            "breaks. Cannot be combined with --only."
+            "Skip categories: eol, blank-lines, indent, spacing, wrapping, comments. "
+            "Skipping wrapping keeps original line breaks."
         ),
-        "config": (
-            "Read settings from PATH instead of searching for skillfmt.toml upward from the "
-            "input location. Exit 2 if the file is missing or invalid."
-        ),
-        "strict": (
-            "Treat any unsupported-syntax warning as an error: print the warning, write nothing, "
-            "and exit 2. Cannot be combined with --best-effort."
-        ),
+        "config": "Read settings from PATH instead of searching for skillfmt.toml.",
+        "strict": "Treat unsupported-syntax warnings as errors (no write).",
         "best_effort": (
-            "Ask for the conservative fallback when unsupported reader syntax is found. "
-            "Currently the whole top-level form is still preserved unchanged; the flag is "
-            "reserved for a future whitespace-only layout. Cannot be combined with --strict."
+            "Reserved whitespace-only fallback; currently keeps whole top-level forms unchanged."
         ),
-        "quiet": (
-            "Do not print unsupported-syntax warnings to stderr. Errors and --check/--diff "
-            "results are unchanged."
-        ),
-        "verbose": (
-            "Print the config source and per-input formatted/unchanged status to stderr. "
-            "Formatted output on stdout is unchanged."
-        ),
+        "quiet": "Do not print unsupported-syntax warnings.",
+        "verbose": "Print config source and per-input status to stderr.",
         "init_config": (
-            "Write a commented skillfmt.toml template to PATH (default: skillfmt.toml) and exit "
-            "0. Use '-' to print the template to stdout. An existing file is refused unless "
-            "--force is given. Cannot be combined with formatting options."
+            "Write a commented skillfmt.toml template to PATH (default: skillfmt.toml; '-' = "
+            "stdout). Refuses to overwrite unless --force; cannot be combined with formatting "
+            "options."
         ),
-        "force": (
-            "Allow --init-config to overwrite an existing file; only valid with --init-config."
-        ),
-        "force_zh": (
-            "Force Chinese help, warnings and diagnostics. Does not change formatted output. "
-            "Mutually exclusive with --en."
-        ),
-        "force_en": (
-            "Force English help, warnings and diagnostics. Does not change formatted output. "
-            "Mutually exclusive with --zh."
-        ),
+        "force": "Allow --init-config to overwrite an existing file.",
+        "force_zh": "Force Chinese help and diagnostics.",
+        "force_en": "Force English help and diagnostics.",
         "epilog": (
             "Exit status:\n"
-            "  0  success, or --check/--diff found no differences\n"
-            "  1  --check or --diff found input that needs formatting\n"
-            "  2  usage error, I/O error, parse or verification failure, strict warning,\n"
-            "     or refusal to overwrite an existing config file\n"
+            "  0  success or no differences\n"
+            "  1  --check/--diff found differences\n"
+            "  2  usage, I/O, parse, verification, strict-warning or overwrite-refusal error\n"
             "\n"
-            "Output channels:\n"
-            "  stdout  formatted text (no action flag), unified diff (--diff), or the\n"
-            "          config template when --init-config gets '-'\n"
-            "  stderr  warnings, errors and --verbose status lines\n"
-            "  stdin   on failure the original bytes are echoed to stdout, so editor\n"
-            "          filters such as :%!skillfmt never lose text\n"
-            "\n"
-            "Language:\n"
-            "  --zh and --en are optional and mutually exclusive. Without them skillfmt\n"
-            "  checks SKILLFMT_LANG, LC_ALL, LC_MESSAGES, LANGUAGE, LANG and the system UI\n"
-            "  language, then falls back to English. These switches only affect help,\n"
-            "  warnings and diagnostics; they never change formatted output."
+            "Formatted text or a diff goes to stdout; diagnostics go to stderr. On stdin failure\n"
+            "the original bytes are echoed to stdout, so :%!skillfmt never loses text.\n"
+            "Language: --zh/--en are mutually exclusive, override locale detection, and affect\n"
+            "only help and diagnostics."
         ),
         "warning_label": "warning",
         "would_reformat": "would reformat",
@@ -156,94 +105,49 @@ TEXTS: dict[str, dict[str, str]] = {
         "usage": "用法: ",
         "positional": "位置参数",
         "options": "选项",
-        "help": "显示本帮助并以状态码 0 退出",
-        "version": "显示版本号并以状态码 0 退出",
+        "help": "显示帮助并退出",
+        "version": "显示版本号并退出",
         "description": (
             "保守格式化 Cadence SKILL 源码。\n\n"
-            "读取 UTF-8 输入，只重排空白与调用括号位置，token 和注释正文保持不变；\n"
-            "无法识别的读取器语法会在其顶层 form 内按原字节保留。\n\n"
-            "未指定 --write、--check 或 --diff 时，单个输入格式化后写到标准输出。"
+            "只改空白与调用括号位置，token、注释正文与不支持的顶层 form 保持原样。\n"
+            "PATH 为空或为 '-' 时读取 stdin。"
         ),
-        "paths": (
-            "输入文件、目录，或 '-' 表示 stdin。目录会递归查找 *.il 与 *.ils。"
-            "不提供 PATH 时读取 stdin，结果写到 stdout。"
-        ),
-        "write": (
-            "原地改写有变化的文件。只有输出能重新解析、且 token 结构与注释都与输入一致时"
-            "才原子替换文件。成功退出 0，任一失败退出 2；不能与 stdin、--check 或 --diff 同用。"
-        ),
-        "check": (
-            "不写文件。对每个有差异的文件输出一行“需要重新格式化”；有差异退出 1，"
-            "全部已格式化退出 0。"
-        ),
-        "diff": (
-            "不写文件。对每个有变化的文件向 stdout 输出 unified diff；有差异退出 1，否则退出 0。"
-        ),
+        "paths": "输入文件或目录（'-' 表示 stdin）。目录递归查找 *.il/*.ils；无 PATH 时读 stdin。",
+        "write": "原地改写有变化的文件；校验通过后原子替换。",
+        "check": "不写文件；报告有差异的文件。",
+        "diff": "不写文件；输出 unified diff。",
         "lines": (
-            "只格式化第 A:B 行覆盖的 form（行号 1 基、含两端）。'A:' 表示到文件末尾，"
-            "':B' 表示从第 1 行开始，可重复指定。只允许一个输入；选区之外的字节原样保留，"
-            "并保留选区所在位置的整体缩进。"
+            "只格式化第 A:B 行覆盖的 form（1 基、含两端，'A:'/':B' 为开放区间，可重复）。"
+            "只允许一个输入；选区外字节与整体缩进保持不变。"
         ),
         "line_width": (
-            "每一行输出的宽度上限，包含缩进。超长结构会折行，list 的每个元素独占一行。"
-            "默认取 format.width（150），最小 20。"
+            "整行输出宽度上限，含缩进（默认 150，最小 20）。超长 list 的每个元素独占一行。"
         ),
-        "base_indent": (
-            "最外层 form 的起始缩进，覆盖 format.base_indent。文件默认从 0 开始；"
-            "stdin 且未使用 --lines 时沿用输入中最小的行首缩进。"
-        ),
-        "stdin_path": (
-            "stdin 内容所代表的文件路径。用于向上查找 skillfmt.toml 并标注诊断信息；"
-            "只在读取 stdin 时有效。"
-        ),
-        "only": (
-            "只启用这些格式分类（逗号分隔）：eol、blank-lines、indent、spacing、wrapping、"
-            "comments。其余分类全部关闭；不能与 --skip 同用。"
-        ),
-        "skip": (
-            "跳过这些格式分类（逗号分隔）。跳过 wrapping 会保留原有换行位置；不能与 --only 同用。"
-        ),
-        "config": (
-            "从 PATH 读取配置，而不是从输入位置向上查找 skillfmt.toml。"
-            "文件不存在或内容非法时退出 2。"
-        ),
-        "strict": (
-            "把任何“未支持语法”警告视为错误：输出警告、不写文件并退出 2；"
-            "不能与 --best-effort 同用。"
-        ),
-        "best_effort": (
-            "遇到未支持的读取器语法时请求保守回退。目前仍会原样保留整个顶层 form，"
-            "该开关预留给后续的纯空白布局；不能与 --strict 同用。"
-        ),
-        "quiet": "不向 stderr 输出未支持语法警告；错误信息与 --check/--diff 结果不受影响。",
-        "verbose": (
-            "向 stderr 输出配置来源以及每个输入的“已格式化/未变化”状态；stdout 上的格式化结果不变。"
-        ),
+        "base_indent": "最外层 form 的缩进（文件默认 0；stdin 未用 --lines 时沿用最小行首缩进）。",
+        "stdin_path": "stdin 对应的文件路径，用于查找 skillfmt.toml 与标注诊断。",
+        "only": "只启用给定分类（名称见 --skip）。",
+        "skip": "跳过：eol/blank-lines/indent/spacing/wrapping/comments；关闭 wrapping 保留换行。",
+        "config": "从 PATH 读取配置，不再向上查找 skillfmt.toml。",
+        "strict": "把未支持语法警告视为错误（不写文件）。",
+        "best_effort": "预留的纯空白回退；目前仍原样保留整个顶层 form。",
+        "quiet": "不输出未支持语法警告。",
+        "verbose": "向 stderr 输出配置来源与每个输入的状态。",
         "init_config": (
-            "把带注释的 skillfmt.toml 模板写入 PATH（默认 skillfmt.toml）并退出 0。"
-            "PATH 为 '-' 时输出到 stdout。目标已存在时默认拒绝覆盖，除非同时给出 --force；"
-            "不能与其他格式化选项同用。"
+            "把带注释的 skillfmt.toml 模板写入 PATH（默认 skillfmt.toml；'-' 输出到 stdout）。"
+            "已有文件默认拒绝，--force 才覆盖；不能与其他格式化选项同用。"
         ),
-        "force": "允许 --init-config 覆盖已存在的文件；只能与 --init-config 同用。",
-        "force_zh": "强制使用中文帮助、警告与诊断信息；不影响格式化结果；与 --en 互斥。",
-        "force_en": "强制使用英文帮助、警告与诊断信息；不影响格式化结果；与 --zh 互斥。",
+        "force": "允许 --init-config 覆盖已有文件。",
+        "force_zh": "强制中文帮助与诊断。",
+        "force_en": "强制英文帮助与诊断。",
         "epilog": (
             "退出码:\n"
-            "  0  成功，或 --check/--diff 未发现差异\n"
-            "  1  --check 或 --diff 发现需要格式化的输入\n"
-            "  2  用法错误、IO 错误、解析或校验失败、strict 警告，或拒绝覆盖已有配置文件\n"
+            "  0  成功或无差异\n"
+            "  1  --check/--diff 发现差异\n"
+            "  2  用法、IO、解析、校验、strict 警告或拒绝覆盖等错误\n"
             "\n"
-            "输出通道:\n"
-            "  stdout  格式化文本（无动作选项）、unified diff（--diff），或\n"
-            "          --init-config 收到 '-' 时的配置模板\n"
-            "  stderr  警告、错误与 --verbose 状态行\n"
-            "  stdin   失败时把原始字节写回 stdout，避免 :%!skillfmt 等\n"
-            "          编辑器过滤器丢文本\n"
-            "\n"
-            "语言:\n"
-            "  --zh 与 --en 均为可选且互斥。未指定时依次检查 SKILLFMT_LANG、\n"
-            "  LC_ALL、LC_MESSAGES、LANGUAGE、LANG 与系统界面语言，最后回退到英文。\n"
-            "  这两个开关只影响帮助、警告与诊断信息，绝不改变格式化结果。"
+            "格式化文本或 diff 输出到 stdout，诊断信息输出到 stderr。stdin 失败时原字节\n"
+            "回显到 stdout，保证 :%!skillfmt 等编辑器过滤器不丢文本。\n"
+            "语言: --zh/--en 互斥，覆盖自动检测，仅影响帮助与诊断。"
         ),
         "warning_label": "警告",
         "would_reformat": "需要重新格式化",

@@ -126,7 +126,7 @@ def test_forced_language_flags() -> None:
     zh = run_cli(["--zh", "-h"], env_extra={"SKILLFMT_LANG": "en"})
     assert zh.returncode == 0
     assert "用法:" in zh.stdout
-    assert "强制使用中文" in zh.stdout
+    assert "强制中文帮助" in zh.stdout
     en = run_cli(["--en", "-h"], env_extra={"SKILLFMT_LANG": "zh"})
     assert en.returncode == 0
     assert "Usage:" in en.stdout
@@ -146,23 +146,25 @@ def test_forced_language_affects_check_message() -> None:
 
 
 def test_help_documents_exit_status_and_language_scope() -> None:
-    result = run_cli(["--en", "-h"], env_extra={"COLUMNS": "200"})
+    result = run_cli(["--en", "-h"], env_extra={"COLUMNS": "100"})
     assert result.returncode == 0
+    assert len(result.stdout.splitlines()) <= 60
     assert "Exit status:" in result.stdout
-    assert "Output channels:" in result.stdout
     assert "Language:" in result.stdout
-    assert "never change formatted output" in result.stdout
+    assert "only help and diagnostics" in result.stdout
     assert "--init-config" in result.stdout
+    assert "Output channels:" not in result.stdout
 
 
 def test_help_documents_exit_status_and_language_scope_in_chinese() -> None:
-    result = run_cli(["--zh", "-h"], env_extra={"COLUMNS": "200"})
+    result = run_cli(["--zh", "-h"], env_extra={"COLUMNS": "100"})
     assert result.returncode == 0
+    assert len(result.stdout.splitlines()) <= 60
     assert "退出码:" in result.stdout
-    assert "输出通道:" in result.stdout
     assert "语言:" in result.stdout
-    assert "绝不改变格式化结果" in result.stdout
+    assert "仅影响帮助与诊断" in result.stdout
     assert "--init-config" in result.stdout
+    assert "输出通道:" not in result.stdout
 
 
 def test_init_config_writes_loadable_template(tmp_path: Path) -> None:

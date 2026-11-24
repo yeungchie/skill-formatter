@@ -58,7 +58,7 @@ skillfmt --init-config           # 生成 skillfmt.toml 模板
 
 帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定，例如 `skillfmt --zh -h`。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
 
-`--help` 末尾给出完整的退出码、输出通道与语言选择规则；每个选项的帮助也会说明成功与失败时的行为。
+帮助按“选项一句话说明 + 末尾退出码与语言规则”组织；只有 `--lines`、`--line-width`、`--init-config` 等非显然行为才展开说明。
 
 ## 格式分类
 
