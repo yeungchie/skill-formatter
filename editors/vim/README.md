@@ -81,6 +81,7 @@ Plug '/path/to/skill-formatter', {'rtp': 'editors/vim'}
 :set filetype?              " 应显示 filetype=skill
 :echo executable('skillfmt') " 应为 1
 :command Skillfmt           " 应存在
+:SkillfmtVersion            " 应显示版本与最低要求
 :help skillfmt              " 应能打开帮助
 ```
 
@@ -98,6 +99,8 @@ let g:skillfmt_args = '--line-width 100'
 
 - `g:skillfmt_executable`：`skillfmt` 路径；默认 `"skillfmt"`，即从 `PATH` 查找。
 - `g:skillfmt_args`：追加给 `skillfmt format` 的原始 shell 参数，也会进入 `formatprg`。
+
+插件在格式化前运行 `skillfmt --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化。
 
 运行中修改这两个变量后执行：
 
@@ -127,6 +130,7 @@ let g:skillfmt_args = '--line-width 100'
 - `'encoding'` 建议为 `utf-8`，否则非 ASCII 源码可能显示异常。
 - `formatprg` 只在打开文件时检测到 `skillfmt` 可执行才设置；之后改路径请执行
   `:SkillfmtRefresh`。
+- 升级 CLI 后执行 `:SkillfmtRefresh` 重新检测版本并生成 `formatprg`。
 
 ## 7. 排错
 
@@ -135,6 +139,7 @@ let g:skillfmt_args = '--line-width 100'
 | `E492: Not an editor command: Skillfmt` | `plugin/skillfmt.vim` 不在 `runtimepath`；用 `:set runtimepath?` 检查 |
 | `E117: Unknown function: skillfmt#FormatAll` | `autoload/skillfmt.vim` 未复制或运行目录不对 |
 | `skillfmt: executable not found` | `:echo executable('skillfmt')`；安装 CLI 或设置 `g:skillfmt_executable` |
+| `skillfmt ... is too old` | 用 `uv tool install --force .` 升级，然后 `:SkillfmtRefresh` |
 | `formatprg` 为空 / `gq` 无效 | 打开文件时 `skillfmt` 不在 PATH；设置 `g:skillfmt_executable` 后 `:SkillfmtRefresh` |
 | `:help skillfmt` 找不到 | 在 `doc/` 所在目录执行 `:helptags` |
 | 中文乱码 | 执行 `:set encoding?`，必要时 `:set encoding=utf-8` |

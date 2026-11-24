@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from skill_formatter import __version__
 from skill_formatter.config import load_config
 
 
@@ -34,6 +35,12 @@ def test_stdin_filter() -> None:
     result = run_cli(["format"], 'procedure(foo(a "t")\na = 1\n)\n')
     assert result.returncode == 0
     assert 'procedure(foo(a "t")\n    a = 1\n)\n' == result.stdout
+
+
+def test_version_output() -> None:
+    result = run_cli(["--version"])
+    assert result.returncode == 0
+    assert result.stdout == f"skillfmt {__version__}\n"
 
 
 def test_best_effort_uses_conservative_layout() -> None:

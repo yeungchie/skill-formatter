@@ -7,8 +7,81 @@ endif
 let s:save_cpo = &cpo
 set cpo&vim
 
+let s:min_version = '0.1.0'
+let s:version_ok = -1
+let s:version_exe = ''
+
 function! s:Executable() abort
   return get(g:, 'skillfmt_executable', 'skillfmt')
+endfunction
+
+function! s:ShowMessage(message) abort
+  echohl ErrorMsg
+  echomsg a:message
+  echohl None
+endfunction
+
+function! s:VersionAtLeast(found, required) abort
+  let l:found = split(a:found, '\.')
+  let l:required = split(a:required, '\.')
+  if len(l:found) < 3 || len(l:required) < 3
+    return 0
+  endif
+  let l:index = 0
+  while l:index < 3
+    let l:left = str2nr(l:found[l:index])
+    let l:right = str2nr(l:required[l:index])
+    if l:left > l:right
+      return 1
+    elseif l:left < l:right
+      return 0
+    endif
+    let l:index = l:index + 1
+  endwhile
+  return 1
+endfunction
+
+function! s:ReadVersion() abort
+  let l:output = system(shellescape(s:Executable()) . ' --version')
+  if v:shell_error
+    return ''
+  endif
+  return matchstr(l:output, '\d\+\.\d\+\.\d\+')
+endfunction
+
+function! skillfmt#VersionOk() abort
+  let l:exe = s:Executable()
+  if s:version_exe !=# l:exe
+    let s:version_ok = -1
+    let s:version_exe = l:exe
+  endif
+  if s:version_ok >= 0
+    return s:version_ok
+  endif
+  let l:found = s:ReadVersion()
+  if empty(l:found)
+    let s:version_ok = 0
+    call s:ShowMessage('skillfmt: cannot determine version; install or update the executable')
+    return 0
+  endif
+  if !s:VersionAtLeast(l:found, s:min_version)
+    let s:version_ok = 0
+    call s:ShowMessage(
+          \ 'skillfmt ' . l:found . ' is too old; requires >= ' . s:min_version
+          \ . ' (upgrade, then :SkillfmtRefresh)')
+    return 0
+  endif
+  let s:version_ok = 1
+  return 1
+endfunction
+
+function! skillfmt#Version() abort
+  let l:found = s:ReadVersion()
+  if empty(l:found)
+    echomsg 'skillfmt: version unknown'
+  else
+    echomsg 'skillfmt ' . l:found . ' (required >= ' . s:min_version . ')'
+  endif
 endfunction
 
 function! skillfmt#FormatPrg() abort
@@ -21,7 +94,16 @@ function! skillfmt#FormatPrg() abort
 endfunction
 
 function! skillfmt#Refresh() abort
-  let &l:formatprg = skillfmt#FormatPrg()
+  let s:version_ok = -1
+  call skillfmt#Setup()
+endfunction
+
+function! skillfmt#Setup() abort
+  if skillfmt#VersionOk()
+    let &l:formatprg = skillfmt#FormatPrg()
+  else
+    let &l:formatprg = ''
+  endif
 endfunction
 
 function! s:ShowError(file) abort
@@ -54,6 +136,9 @@ function! skillfmt#Format(all, first, last) abort
     echohl ErrorMsg
     echomsg 'skillfmt: executable not found: ' . l:exe
     echohl None
+    return
+  endif
+  if !skillfmt#VersionOk()
     return
   endif
 

@@ -29,7 +29,12 @@ COMMANDS
 
                                                         *:SkillfmtRefresh*
 :SkillfmtRefresh        Rebuild 'formatprg' after changing
-                        |g:skillfmt_executable| or |g:skillfmt_args|.
+                        |g:skillfmt_executable| or |g:skillfmt_args|, or after
+                        upgrading skillfmt.
+
+                                                        *:SkillfmtVersion*
+:SkillfmtVersion        Show the detected skillfmt version and the minimum
+                        required version.
 
 FILTERS
 
@@ -43,6 +48,9 @@ OPTIONS
   g:skillfmt_executable  Path to the executable. Default: "skillfmt".
   g:skillfmt_args        Extra shell arguments appended to the command,
                         including the 'formatprg' used by |gq|.
+
+The plugin runs `skillfmt --version` before formatting and requires
+`>= 0.1.0`; older or unparseable versions are refused.
 
 Vim 7.4 NOTES
 

@@ -1,14 +1,35 @@
 import * as vscode from "vscode";
 import {
   type FormatOptions,
+  MIN_CLI_VERSION,
   buildArgs,
   changedSpan,
   containsSpan,
   minimalEdit,
+  parseVersion,
   runFormatter,
+  runCommand,
+  versionAtLeast,
 } from "./format";
 
 const output = vscode.window.createOutputChannel("SKILL Formatter");
+const versionChecks = new Map<string, Promise<string | null>>();
+
+function cliVersion(options: FormatOptions): Promise<string | null> {
+  let pending = versionChecks.get(options.executable);
+  if (!pending) {
+    pending = runCommand(
+      options.executable,
+      ["--version"],
+      "",
+      Math.min(options.timeoutMs, 5000),
+    )
+      .then((result) => (result.code === 0 ? parseVersion(result.stdout) : null))
+      .catch(() => null);
+    versionChecks.set(options.executable, pending);
+  }
+  return pending;
+}
 
 function configFor(document: vscode.TextDocument): FormatOptions {
   const config = vscode.workspace.getConfiguration("skillFormatter", document.uri);
@@ -54,6 +75,21 @@ async function formatDocument(
   range?: vscode.Range,
 ): Promise<vscode.TextEdit[]> {
   const options = configFor(document);
+  const version = await cliVersion(options);
+  if (version === null) {
+    output.appendLine(`cannot determine version: ${options.executable} --version`);
+    vscode.window.showErrorMessage(
+      "skillfmt: cannot determine CLI version; install or update the skillfmt executable",
+    );
+    return [];
+  }
+  if (!versionAtLeast(version, MIN_CLI_VERSION)) {
+    output.appendLine(`skillfmt ${version} is older than required ${MIN_CLI_VERSION}`);
+    vscode.window.showErrorMessage(
+      `skillfmt ${version} is too old; requires >= ${MIN_CLI_VERSION}. Run: uv tool install --force <skill-formatter-repo>`,
+    );
+    return [];
+  }
   if (range) {
     options.lines = lineRange(range);
   }

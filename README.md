@@ -69,6 +69,13 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 
 帮助只介绍工具用途、子命令与选项；退出码、语言检测和实现取舍等细节留在本文档。
 
+## 版本与兼容性
+
+- CLI 用 `skillfmt --version` 输出 `skillfmt 0.1.0`。
+- VS Code 扩展与 Vim 插件在格式化前运行 `skillfmt --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化并提示升级。
+- 升级 CLI：`uv tool install --force .`。VS Code 需重载窗口；Vim 执行 `:SkillfmtRefresh`。
+- 发布前版本保持 `0.1.0`。开始发布后，工具行为或特性有变化时同步提升版本号，并同步更新编辑器插件的最低要求。
+
 `config` 子命令：
 
 | 子命令 | 说明 |

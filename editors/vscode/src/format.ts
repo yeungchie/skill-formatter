@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 
+export const MIN_CLI_VERSION = "0.1.0";
+
 export interface FormatOptions {
   executable: string;
   configPath?: string;
@@ -24,6 +26,27 @@ export interface MinimalEdit {
 export interface Span {
   start: number;
   end: number;
+}
+
+export function parseVersion(output: string): string | null {
+  const match = output.match(/\b(\d+)\.(\d+)\.(\d+)\b/);
+  return match ? `${match[1]}.${match[2]}.${match[3]}` : null;
+}
+
+export function versionAtLeast(version: string, minimum: string): boolean {
+  const found = parseVersion(version);
+  const required = parseVersion(minimum);
+  if (!found || !required) {
+    return false;
+  }
+  const left = found.split(".").map(Number);
+  const right = required.split(".").map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    if (left[index] !== right[index]) {
+      return left[index] > right[index];
+    }
+  }
+  return true;
 }
 
 export function buildArgs(options: FormatOptions): string[] {

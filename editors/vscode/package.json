@@ -4,6 +4,7 @@
   "description": "Format Cadence SKILL source with skillfmt.",
   "version": "0.1.0",
   "publisher": "YEUNGCHIE",
+  "author": "YEUNGCHIE",
   "license": "MIT",
   "engines": {
     "vscode": "^1.70.0"

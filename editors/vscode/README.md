@@ -36,6 +36,10 @@ lines are replaced; the selection is formatted as a fragment using its own
 base indentation. Incomplete fragments are left unchanged with a diagnostic,
 and text outside the selected lines is preserved byte for byte.
 
+Before formatting, the extension runs `skillfmt --version` and requires at
+least `0.1.0`. If the version is older or cannot be parsed, the edit is
+refused with an upgrade message.
+
 Upgrade the installed CLI whenever the formatter or this extension changes:
 
 ```sh

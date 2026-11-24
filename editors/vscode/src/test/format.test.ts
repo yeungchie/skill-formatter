@@ -6,7 +6,9 @@ import {
   changedSpan,
   containsSpan,
   minimalEdit,
+  parseVersion,
   runCommand,
+  versionAtLeast,
 } from "../format";
 
 test("buildArgs includes config, stdin path and range", () => {
@@ -55,6 +57,18 @@ test("changedSpan detects edits outside the selected lines", () => {
   const outside = changedSpan("foo( 1 )\nbar( 3 )\n", "foo(1)\nbar(3)\n");
   assert.ok(outside);
   assert.equal(containsSpan({ start: 0, end: 9 }, outside), false);
+});
+
+test("parseVersion reads skillfmt --version output", () => {
+  assert.equal(parseVersion("skillfmt 0.2.0\n"), "0.2.0");
+  assert.equal(parseVersion("no version here"), null);
+});
+
+test("versionAtLeast compares numeric components", () => {
+  assert.equal(versionAtLeast("0.2.0", "0.2.0"), true);
+  assert.equal(versionAtLeast("0.1.9", "0.2.0"), false);
+  assert.equal(versionAtLeast("0.10.0", "0.2.0"), true);
+  assert.equal(versionAtLeast("1.0.0", "0.2.0"), true);
 });
 
 test("runFormatter pipes stdin to stdout", async () => {
