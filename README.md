@@ -48,9 +48,9 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 | --- | --- |
 | `PATH` | 文件、目录或 `-`（stdin）；目录递归展开为 `*.il` / `*.ils` |
 | `-w, --write` | 仅 `format`：原子写入；失败不写任何字节 |
-| `--lines A:B` | 1 基、含两端；可重复；支持 `A:` / `:B` |
+| `--lines A:B` | 只格式化 A:B 行；1 基、含两端、可重复、支持 `A:` / `:B`；片段不完整时保持原样 |
 | `--line-width N` | 全局行宽上限；覆盖配置 `format.width`，默认 150 |
-| `--base-indent N` | 指定第一层起始缩进 |
+| `--base-indent N` | 指定选区片段或最外层 form 的起始缩进 |
 | `--stdin-path PATH` | stdin 输入对应的真实文件路径 |
 | `--only CATS` / `--skip CATS` | 只启用/跳过分类 |
 | `--strict` | 任一警告视为错误 |
@@ -160,6 +160,8 @@ skillfmt config trace                             # 查看生效文件
 }
 ```
 
+插件自身的 name 仍是 `skill-formatter`；VS Code 的扩展 ID 由 `publisher.name` 组成，因此配置值写作 `YEUNGCHIE.skill-formatter`。
+
 其他语言同理，把 `[skill]` 换成目标语言的 id 即可；也可以在 Format Document With... 中选择 `SKILL Formatter`。若希望 `.il`/`.ils` 自动识别为 `skill`，由用户自行配置：
 
 ```json
@@ -169,7 +171,7 @@ skillfmt config trace                             # 查看生效文件
 }
 ```
 
-选区可以只覆盖一个 form，也可以跨多个顶层 form；格式化会扩展到选区命中的完整 form，未命中的文本逐字保留。`skillFormatter.enableRangeFormatting` 为 `false` 时不注册选区格式化，命令面板中的 Format Selection 也会提示已禁用。
+Format Selection 只格式化选中的完整行，不会扩展到外层 form；选区按自身最小缩进作为起始缩进，选区外文本逐字保留。片段不完整或离开上下文后结构不成立时保持原样，并在输出面板输出提示。`skillFormatter.enableRangeFormatting` 为 `false` 时不注册选区格式化，命令面板中的 Format Selection 也会提示已禁用。
 
 扩展设置：
 
@@ -197,7 +199,7 @@ code --install-extension skill-formatter-0.1.0.vsix
 
 ```vim
 :Skillfmt              " 格式化整个缓冲区
-:'<,'>SkillfmtRange    " 只格式化选区所在的结构 form
+:'<,'>SkillfmtRange    " 只格式化选区行（片段模式）
 :%!skillfmt format     " 原生过滤：整文件
 :'<,'>!skillfmt format " 原生过滤：选区（片段模式）
 ```

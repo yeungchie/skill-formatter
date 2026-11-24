@@ -37,10 +37,10 @@ if s:lines != ['procedure(foo(a "t")', '    a = 1', ')']
   call s:Fail('whole buffer formatting: ' . string(s:lines))
 endif
 
-call setline(1, ['procedure(foo(a "t")', 'let((x)', 'x=1', ')', ')'])
-2,3SkillfmtRange
+call setline(1, ['procedure(foo(a "t")', '    let((x)', '        x=1', '    )', ')'])
+2,4SkillfmtRange
 let s:lines = getline(1, '$')
-if s:lines[1] != '    let((x)' || s:lines[2] != '        x=1'
+if s:lines[1] != '    let((x)' || s:lines[2] != '        x=1' || s:lines[3] != '    )'
   call s:Fail('range formatting: ' . string(s:lines))
 endif
 

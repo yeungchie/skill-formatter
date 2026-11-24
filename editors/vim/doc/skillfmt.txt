@@ -8,10 +8,12 @@ COMMANDS
 :Skillfmt               Format the whole buffer.
 
                                                         *:SkillfmtRange*
-:[range]SkillfmtRange   Format the smallest enclosing form(s) for the range.
+:[range]SkillfmtRange   Format the selected lines as a fragment.
                         The whole buffer is sent to skillfmt with --lines, so
-                        text outside the affected form(s) is preserved byte
-                        for byte.
+                        only the selected lines are replaced and text outside
+                        the range is preserved byte for byte.  The selected
+                        lines must form a complete fragment; otherwise they
+                        are left unchanged with a diagnostic.
 
                                                         *:SkillfmtRefresh*
 :SkillfmtRefresh        Rebuild 'formatprg' after changing

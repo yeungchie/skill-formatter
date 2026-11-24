@@ -33,14 +33,15 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "write": "Rewrite changed files in place.",
         "lines": (
-            "Format only forms covered by lines A:B (1-based, inclusive; 'A:' and ':B' "
-            "open-ended; repeatable). One input only."
+            "Format only the selected lines A:B (1-based, inclusive; 'A:' and ':B' "
+            "open-ended; repeatable). Incomplete fragments are left unchanged. "
+            "One input only."
         ),
         "line_width": (
             "Maximum output line width, including indentation (default 150, minimum 20). "
             "Long lists put each element on its own line."
         ),
-        "base_indent": "Indent of the outermost form.",
+        "base_indent": "Base indentation for selected fragments or the outermost form.",
         "stdin_path": "Path stdin represents, used to locate skillfmt.toml.",
         "only": "Only the given categories; required prerequisites are added.",
         "skip": (
@@ -110,13 +111,13 @@ TEXTS: dict[str, dict[str, str]] = {
         "paths": "输入文件或目录（'-' 表示 stdin）；目录递归查找 *.il/*.ils。",
         "write": "原地改写有变化的文件。",
         "lines": (
-            "只格式化第 A:B 行覆盖的 form（1 基、含两端，'A:'/':B' 为开放区间，可重复）。"
-            "只允许一个输入。"
+            "只格式化第 A:B 行（1 基、含两端，'A:'/':B' 为开放区间，可重复）；"
+            "片段不完整时保持原样。只允许一个输入。"
         ),
         "line_width": (
             "整行输出宽度上限，含缩进（默认 150，最小 20）。超长 list 的每个元素独占一行。"
         ),
-        "base_indent": "最外层 form 的缩进。",
+        "base_indent": "选区片段或最外层 form 的起始缩进。",
         "stdin_path": "stdin 对应的文件路径，用于查找 skillfmt.toml。",
         "only": "只启用给定分类；会自动补齐依赖分类。",
         "skip": "跳过：eol/blank-lines/indent/spacing/wrapping/comments。",

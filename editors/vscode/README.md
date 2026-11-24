@@ -13,6 +13,9 @@ yourself, for example:
 }
 ```
 
+The extension name stays `skill-formatter`; VS Code builds the extension id as
+`publisher.name`, so the setting value is `YEUNGCHIE.skill-formatter`.
+
 Use the standard Format Document and Format Selection commands, or pick
 `SKILL Formatter` from Format Document With.... The extension does not
 override `Ctrl+Shift+F`.
@@ -28,9 +31,10 @@ To make `.il`/`.ils` files open as `skill`, add your own association:
 
 The `skillfmt` executable must be on `PATH`, or set
 `skillFormatter.executablePath`. Range formatting is implemented by sending
-the whole document plus `--lines a:b` to `skillfmt format`. A selection may
-cover one form or several top-level forms; formatting expands to the complete
-forms it touches, and text outside those forms is preserved byte for byte.
+the whole document plus `--lines a:b` to `skillfmt format`. Only the selected
+lines are replaced; the selection is formatted as a fragment using its own
+base indentation. Incomplete fragments are left unchanged with a diagnostic,
+and text outside the selected lines is preserved byte for byte.
 
 `skillFormatter.enableRangeFormatting` controls whether range formatting is
 registered, and changes take effect immediately.

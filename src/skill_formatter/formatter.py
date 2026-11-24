@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .ast import Node
 from .lexer import LexError, LexResult, lex
@@ -953,61 +953,56 @@ def _line_offsets(text: str) -> list[int]:
     return offsets
 
 
-def _node_starts_line(text: str, node: Node) -> bool:
-    line_start = text.rfind("\n", 0, node.start) + 1
-    return text[line_start : node.start].strip() == ""
+def _fragment_indent(fragment: str) -> int:
+    for line in fragment.splitlines():
+        if line.strip():
+            return len(line) - len(line.lstrip(" "))
+    return 0
 
 
-def _node_ends_line(text: str, node: Node) -> bool:
-    line_end = text.find("\n", node.end)
-    if line_end < 0:
-        line_end = len(text)
-    tail = text[node.end : line_end]
-    return tail.strip() == "" or tail.lstrip().startswith(";")
+def _format_fragment(fragment: str, options: Options) -> FormatResult:
+    base = options.base_indent
+    if base is None:
+        base = _fragment_indent(fragment)
+    return format_source(fragment, replace(options, base_indent=base, warnings=[]))
 
 
-def _selected_node(root: Node, start: int, end: int, text: str) -> Node | None:
-    candidates = []
-    for node in root.walk():
-        if node.kind in {"comment", "opaque", "seq"}:
-            continue
-        if node.start <= start and node.end >= end:
-            candidates.append(node)
-    if not candidates:
+def _merge_spans(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted(spans):
+        if merged and start < merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def _core_span(text: str, start: int, end: int) -> tuple[int, int] | None:
+    """Trim boundary blank lines so repeated range formatting is stable."""
+    lines = text[start:end].splitlines(keepends=True)
+    lead = 0
+    while lead < len(lines) and not lines[lead].strip():
+        lead += 1
+    trail = len(lines)
+    while trail > lead and not lines[trail - 1].strip():
+        trail -= 1
+    if lead == trail:
         return None
-    candidates.sort(key=lambda n: n.end - n.start)
-    for node in candidates:
-        if _node_starts_line(text, node) and _node_ends_line(text, node):
-            return node
-    return candidates[-1]
+    core_start = start + sum(len(line) for line in lines[:lead])
+    core_end = start + sum(len(line) for line in lines[:trail])
+    return core_start, core_end
 
 
-def _range_nodes(root: Node, start: int, end: int, text: str) -> list[Node]:
-    """Return the smallest complete nodes covering one selected line span."""
-    forms = [
-        child
-        for child in root.children
-        if child.kind not in {"comment", "seq", "opaque"}
-        and child.start < end
-        and child.end > start
-    ]
-    if len(forms) > 1:
-        return forms
-    node = _selected_node(root, start, end, text)
-    if node is not None:
-        return [node]
-    return forms
-
-
-def _outermost_nodes(nodes: list[Node]) -> list[Node]:
-    unique: dict[int, Node] = {id(node): node for node in nodes}
-    ordered = sorted(unique.values(), key=lambda node: (node.start, -(node.end - node.start)))
-    selected: list[Node] = []
-    for node in ordered:
-        if any(other.start <= node.start and other.end >= node.end for other in selected):
-            continue
-        selected.append(node)
-    return selected
+def _verification_problem(root: Node, output: str) -> str | None:
+    try:
+        _, check_root, _, _ = _parse(output)
+    except (LexError, ParseIssue) as exc:
+        return f"internal verification failed: {exc}"
+    if _canonical_without_opaque(root) != _canonical_without_opaque(check_root):
+        return "internal verification failed: structure changed"
+    if _comments(root) != _comments(check_root):
+        return "internal verification failed: comments changed"
+    return None
 
 
 def format_range(
@@ -1016,7 +1011,7 @@ def format_range(
     opts = (options or Options()).normalized()
     if not opts.enabled("wrapping"):
         raise FormatError("range formatting requires wrapping")
-    lexed, root, parse_warnings, opaque = _parse(text)
+    _, root, parse_warnings, opaque = _parse(text)
     if opts.unknown == "error" and parse_warnings:
         raise FormatError(parse_warnings[0])
     if opts.unknown == "conservative" and parse_warnings:
@@ -1032,52 +1027,40 @@ def format_range(
         if start_line < 1 or end_line < start_line:
             raise FormatError("invalid line range")
         start = offsets[min(start_line - 1, len(offsets) - 1)]
-        end = offsets[end_line] - 1 if end_line < len(offsets) else len(text)
+        end = offsets[end_line] if end_line < len(offsets) else len(text)
         spans.append((start, end))
 
-    renderer = Renderer(opts)
-    renderer.render_root(root)
-    whole_lines = renderer.out.finish()
-
-    targets: list[Node] = []
-    for start, end in spans:
-        targets.extend(_range_nodes(root, start, end, text))
-
     replacements: list[tuple[int, int, str]] = []
-    for node in _outermost_nodes(targets):
-        for opaque_start, opaque_end in opaque:
-            if node.start >= opaque_start and node.end <= opaque_end:
-                warnings.append("selection intersects an unsupported form; left unchanged")
-                break
-        else:
-            info = renderer.node_info.get(id(node))
-            if info is None:
-                continue
-            out_start, out_end, _ = info
-            if opts.base_indent is not None:
-                sub = Renderer(opts)
-                sub.out = LineBuilder(opts.base_indent)
-                sub.render_node(node, opts.base_indent)
-                replacement_lines = sub.out.finish()
-            else:
-                replacement_lines = whole_lines[out_start : out_end + 1]
-            line_start = text.rfind("\n", 0, node.start) + 1
-            line_end = text.find("\n", node.end)
-            if line_end < 0:
-                line_end = len(text)
-            line_sep = "\n" if opts.enabled("eol") else lexed.eol
-            replacement = line_sep.join(replacement_lines)
-            replacements.append((line_start, line_end, replacement))
+    for start, end in _merge_spans(spans):
+        core = _core_span(text, start, end)
+        if core is None:
+            continue
+        core_start, core_end = core
+        fragment = text[core_start:core_end]
+        try:
+            result = _format_fragment(fragment, opts)
+        except FormatError as exc:
+            line = text.count("\n", 0, core_start) + 1
+            warnings.append(f"line {line}: {exc}; selection left unchanged")
+            continue
+        for warning in result.warnings:
+            if warning not in warnings:
+                warnings.append(warning)
+        if result.text == fragment:
+            continue
+        replacements.append((core_start, core_end, result.text))
 
     output = text
-    for line_start, line_end, replacement in sorted(replacements, reverse=True):
-        suffix = "\n" if text[line_end : line_end + 1] == "\n" else ""
-        output = output[:line_start] + replacement + suffix + output[line_end + len(suffix) :]
+    for start, end, replacement in reversed(replacements):
+        candidate = output[:start] + replacement + output[end:]
+        problem = _verification_problem(root, candidate)
+        if problem is not None:
+            line = text.count("\n", 0, start) + 1
+            warnings.append(f"line {line}: {problem}; selection left unchanged")
+            continue
+        output = candidate
 
-    try:
-        _, check_root, _, _ = _parse(output)
-    except (LexError, ParseIssue) as exc:
-        raise FormatError(f"internal verification failed: {exc}") from exc
-    if _canonical_without_opaque(root) != _canonical_without_opaque(check_root):
-        raise FormatError("internal verification failed: structure changed")
+    problem = _verification_problem(root, output)
+    if problem is not None:
+        raise FormatError(problem)
     return FormatResult(output, output != text, warnings, opaque)

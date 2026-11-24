@@ -25,6 +25,7 @@ def test_vscode_manifest_declares_skill_without_file_associations() -> None:
     )
     contributes = manifest["contributes"]
     languages = contributes["languages"]
+    assert manifest["name"] == "skill-formatter"
     assert manifest["publisher"] == "YEUNGCHIE"
     assert manifest["activationEvents"] == ["onStartupFinished"]
     assert len(languages) == 1
