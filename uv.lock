@@ -135,7 +135,7 @@ wheels = [
 ]
 
 [[package]]
-name = "skillfmt"
+name = "skill-formatter"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

@@ -12,7 +12,7 @@
 git clone <repo>
 cd skill-formatter
 uv tool install .
-uv tool list          # 应显示 skillfmt
+uv tool list          # 应显示 skill-formatter，命令为 skillfmt
 ```
 
 开发环境：

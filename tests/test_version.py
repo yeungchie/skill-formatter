@@ -18,7 +18,7 @@ def _version_tuple(version: str) -> tuple[int, int, int]:
 def test_version_declarations_match() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     vscode = json.loads((ROOT / "editors" / "vscode" / "package.json").read_text(encoding="utf-8"))
-    assert pyproject["project"]["name"] == "skillfmt"
+    assert pyproject["project"]["name"] == "skill-formatter"
     assert pyproject["project"]["scripts"] == {"skillfmt": "skill_formatter.cli:main"}
     assert pyproject["project"]["version"] == __version__
     assert vscode["version"] == __version__
