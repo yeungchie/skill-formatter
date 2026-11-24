@@ -1,10 +1,13 @@
-"""TOML configuration loading."""
+"""TOML configuration loading, inspection and updates."""
 
 from __future__ import annotations
 
+import json
+import re
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from .options import CATEGORIES, Options
 
@@ -13,9 +16,217 @@ class ConfigError(Exception):
     pass
 
 
+ValueKind = Literal["int", "bool", "str", "list-str"]
+
+
+@dataclass(frozen=True, slots=True)
+class KeySpec:
+    section: str
+    name: str
+    kind: ValueKind
+    default: Any
+    minimum: int | None = None
+    choices: tuple[str, ...] | None = None
+
+
+def _build_keys() -> dict[str, KeySpec]:
+    keys = {
+        "format.width": KeySpec("format", "width", "int", 150, minimum=20),
+        "format.indent": KeySpec("format", "indent", "int", 4, minimum=1),
+        "format.base_indent": KeySpec("format", "base_indent", "int", None, minimum=0),
+        "format.output_style": KeySpec("format", "output_style", "str", "c", choices=("c", "s")),
+        "safety.unknown": KeySpec(
+            "safety",
+            "unknown",
+            "str",
+            "opaque",
+            choices=("opaque", "error", "conservative"),
+        ),
+        "rules.inScheme": KeySpec("rules", "inScheme", "str", "flat", choices=("flat", "indent")),
+        "rules.case": KeySpec("rules", "case", "str", "align", choices=("align", "block")),
+        "rules.hanging": KeySpec(
+            "rules",
+            "hanging",
+            "list-str",
+            ("let", "letseq", "letrec", "quote"),
+        ),
+    }
+    for name in CATEGORIES:
+        keys[f"categories.{name}"] = KeySpec("categories", name, "bool", True)
+    return keys
+
+
+CONFIG_KEYS = _build_keys()
+
+
+def config_key_spec(key: str) -> KeySpec:
+    try:
+        return CONFIG_KEYS[key]
+    except KeyError as exc:
+        raise ConfigError(f"unknown configuration key: {key}") from exc
+
+
+def config_option_value(options: Options, key: str) -> Any:
+    spec = config_key_spec(key)
+    if spec.section == "categories":
+        return spec.name in options.categories
+    if key == "format.width":
+        return options.width
+    if key == "format.indent":
+        return options.indent
+    if key == "format.base_indent":
+        return options.base_indent
+    if key == "format.output_style":
+        return options.output_style
+    if key == "safety.unknown":
+        return options.unknown
+    if key == "rules.inScheme":
+        return options.in_scheme
+    if key == "rules.case":
+        return options.case_mode
+    return list(options.hanging)
+
+
+def format_config_value(value: Any, spec: KeySpec) -> str:
+    if value is None:
+        return "unset"
+    if spec.kind == "bool":
+        return "true" if value else "false"
+    if spec.kind == "int":
+        return str(value)
+    if spec.kind == "str":
+        return json.dumps(value, ensure_ascii=False)
+    items = ", ".join(json.dumps(item, ensure_ascii=False) for item in value)
+    return f"[{items}]"
+
+
+def parse_config_value(key: str, raw: str) -> Any | None:
+    spec = config_key_spec(key)
+    text = raw.strip()
+    if text == "unset":
+        return None
+    if spec.kind == "bool":
+        lowered = text.lower()
+        if lowered in {"true", "1"}:
+            return True
+        if lowered in {"false", "0"}:
+            return False
+        raise ConfigError(f"{key} must be true or false")
+    if spec.kind == "int":
+        try:
+            value = int(text, 10)
+        except ValueError as exc:
+            raise ConfigError(f"{key} must be an integer") from exc
+        if spec.minimum is not None and value < spec.minimum:
+            raise ConfigError(f"{key} must be >= {spec.minimum}")
+        return value
+    if spec.kind == "str":
+        if text[:1] in {'"', "'"}:
+            try:
+                value = tomllib.loads(f"value = {text}")["value"]
+            except tomllib.TOMLDecodeError as exc:
+                raise ConfigError(f"{key} must be a string") from exc
+            if not isinstance(value, str):
+                raise ConfigError(f"{key} must be a string")
+        else:
+            value = text
+        if spec.choices is not None and value not in spec.choices:
+            choices = ", ".join(spec.choices)
+            raise ConfigError(f"{key} must be one of: {choices}")
+        return value
+    if text.startswith("["):
+        try:
+            value = tomllib.loads(f"value = {text}")["value"]
+        except tomllib.TOMLDecodeError as exc:
+            raise ConfigError(f"{key} must be a list of strings") from exc
+    else:
+        value = [part.strip() for part in text.split(",") if part.strip()]
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ConfigError(f"{key} must be a list of strings")
+    return value
+
+
+_SECTION_RE = re.compile(r"^\s*\[([^\]]+)\]\s*(?:#.*)?$")
+
+
+def _key_re(name: str) -> re.Pattern[str]:
+    return re.compile(rf"^\s*#?\s*{re.escape(name)}\s*=")
+
+
+def _active_key_re(name: str) -> re.Pattern[str]:
+    return re.compile(rf"^\s*{re.escape(name)}\s*=")
+
+
+def _section_bounds(lines: list[str], section: str) -> tuple[int | None, int]:
+    header = None
+    for index, line in enumerate(lines):
+        match = _SECTION_RE.match(line)
+        if match and match.group(1).strip() == section:
+            header = index
+            break
+    if header is None:
+        return None, len(lines)
+    for index in range(header + 1, len(lines)):
+        if _SECTION_RE.match(lines[index]):
+            return header, index
+    return header, len(lines)
+
+
+def _write_key(text: str, spec: KeySpec, value: str) -> str:
+    lines = text.splitlines()
+    header, end = _section_bounds(lines, spec.section)
+    assignment = f"{spec.name} = {value}"
+    if header is None:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.extend([f"[{spec.section}]", assignment])
+        return "\n".join(lines) + "\n"
+    pattern = _key_re(spec.name)
+    for index in range(header + 1, end):
+        if pattern.match(lines[index]):
+            lines[index] = assignment
+            break
+    else:
+        insert = end
+        while insert > header + 1 and not lines[insert - 1].strip():
+            insert -= 1
+        lines.insert(insert, assignment)
+    return "\n".join(lines) + "\n"
+
+
+def _remove_key(text: str, spec: KeySpec) -> str:
+    lines = text.splitlines()
+    header, end = _section_bounds(lines, spec.section)
+    if header is None:
+        return text
+    pattern = _active_key_re(spec.name)
+    for index in range(header + 1, end):
+        if pattern.match(lines[index]):
+            del lines[index]
+            break
+    else:
+        return text
+    return "\n".join(lines) + "\n"
+
+
+def set_config_text(text: str, key: str, raw: str) -> str:
+    spec = config_key_spec(key)
+    value = parse_config_value(key, raw)
+    if value is None:
+        updated = _remove_key(text, spec)
+    else:
+        updated = _write_key(text, spec, format_config_value(value, spec))
+    try:
+        data = tomllib.loads(updated)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(f"cannot update {key}: {exc}") from exc
+    _options_from_data(data, None)
+    return updated
+
+
 _TEMPLATE_EN = """\
 # skillfmt configuration
-# Generated by: skillfmt config-template
+# Generated by: skillfmt config --template
 #
 # skillfmt searches for this file as "skillfmt.toml" from the input location
 # upward, or reads the path given with --config. Command-line options override
@@ -67,7 +278,7 @@ hanging = ["let", "letseq", "letrec", "quote"]
 
 _TEMPLATE_ZH = """\
 # skillfmt 配置
-# 由 skillfmt config-template 生成
+# 由 skillfmt config --template 生成
 #
 # skillfmt 会从输入位置向上查找名为 "skillfmt.toml" 的文件，或用 --config
 # 指定路径。命令行选项优先于本文件中的值。
@@ -148,7 +359,10 @@ def load_config(path: Path | None = None, start: Path | None = None) -> Options:
         data = tomllib.loads(config_path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as exc:
         raise ConfigError(f"cannot read {config_path}: {exc}") from exc
+    return _options_from_data(data, config_path)
 
+
+def _options_from_data(data: dict[str, Any], config_path: Path | None) -> Options:
     _expect_keys(data, {"format", "categories", "safety", "rules"}, "skillfmt")
     fmt = data.get("format", {})
     cats = data.get("categories", {})
@@ -204,5 +418,5 @@ def load_config(path: Path | None = None, start: Path | None = None) -> Options:
         case_mode=case_mode,
         hanging=tuple(hanging),
         output_style=output_style,
-        config_path=str(config_path),
+        config_path=str(config_path) if config_path is not None else None,
     )

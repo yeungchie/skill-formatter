@@ -13,7 +13,16 @@ from typing import Any, NoReturn, cast
 from rich_argparse import RawDescriptionRichHelpFormatter
 
 from . import __version__
-from .config import ConfigError, load_config, render_template
+from .config import (
+    ConfigError,
+    config_key_spec,
+    config_option_value,
+    find_config,
+    format_config_value,
+    load_config,
+    render_template,
+    set_config_text,
+)
 from .formatter import FormatError, FormatResult, format_range, format_source
 from .i18n import TEXTS, detect_language
 from .i18n import text as tr
@@ -184,14 +193,25 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         add_help_option(sub)
 
     config_parser = subparsers.add_parser(
-        "config-template",
+        "config",
         add_help=False,
-        help=strings["command_config_template"],
-        description=strings["config_template_description"],
-        epilog=strings["config_template_epilog"],
+        help=strings["command_config"],
+        description=strings["config_description"],
+        epilog=strings["config_epilog"],
         formatter_class=LocalizedFormatter,
     )
     set_titles(config_parser, strings["positional"])
+    config_parser.add_argument("--config", type=Path, metavar="PATH", help=strings["config_file"])
+    actions = config_parser.add_mutually_exclusive_group(required=True)
+    actions.add_argument("--template", action="store_true", help=strings["config_template"])
+    actions.add_argument("--get", metavar="KEY", help=strings["config_get"])
+    actions.add_argument(
+        "--set",
+        nargs=2,
+        metavar=("KEY", "VALUE"),
+        help=strings["config_set"],
+    )
+    actions.add_argument("--trace", action="store_true", help=strings["config_trace"])
     add_language_options(config_parser, suppress_default=True)
     add_help_option(config_parser)
 
@@ -321,6 +341,48 @@ def _diff(path: str, before: str, after: str) -> str:
     )
 
 
+def _active_config_path(raw: Path | None, cwd: Path, create: bool) -> Path | None:
+    if raw is not None:
+        if not create and not raw.is_file():
+            raise ConfigError(f"cannot read {raw}")
+        return raw
+    found = find_config(cwd)
+    if found is not None:
+        return found
+    return cwd / "skillfmt.toml" if create else None
+
+
+def _run_config(args: argparse.Namespace, lang: str) -> int:
+    if args.template:
+        sys.stdout.write(render_template(lang))
+        return 0
+    cwd = Path.cwd()
+    try:
+        if args.get is not None:
+            spec = config_key_spec(args.get)
+            path = _active_config_path(args.config, cwd, create=False)
+            options = load_config(path, cwd)
+            print(format_config_value(config_option_value(options, args.get), spec))
+            return 0
+        if args.trace:
+            path = _active_config_path(args.config, cwd, create=False)
+            print(path.resolve() if path is not None else tr(lang, "config_defaults"))
+            return 0
+        if args.set is not None:
+            key, raw = args.set
+            path = _active_config_path(args.config, cwd, create=True)
+            if path is None:
+                raise ConfigError("cannot determine configuration file")
+            old = path.read_text(encoding="utf-8") if path.is_file() else ""
+            _write_atomic(path, set_config_text(old, key, raw))
+            print(tr(lang, "config_updated").format(path=path.resolve()))
+            return 0
+    except (ConfigError, OSError) as exc:
+        print(f"skillfmt: {exc}", file=sys.stderr)
+        return 2
+    return 2
+
+
 def _prescan_language(argv: list[str]) -> str | None:
     for arg in argv:
         if arg == "--":
@@ -340,9 +402,8 @@ def main(argv: list[str] | None = None) -> int:
     lang = "zh" if args.zh else "en" if args.en else detect_language()
     if args.zh and args.en:
         parser.error(tr(lang, "err_language_flags"))
-    if args.command == "config-template":
-        sys.stdout.write(render_template(lang))
-        return 0
+    if args.command == "config":
+        return _run_config(args, lang)
 
     write = getattr(args, "write", False)
     if args.only is not None and args.skip is not None:

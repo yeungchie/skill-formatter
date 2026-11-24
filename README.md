@@ -30,7 +30,7 @@ skillfmt diff file.il                   # 输出 unified diff
 cat file.il | skillfmt format           # stdin 过滤模式
 skillfmt format --lines 10:20 file.il   # 只格式化第 10-20 行
 skillfmt check src/                     # 递归检查目录下的 *.il / *.ils
-skillfmt config-template > skillfmt.toml  # 打印配置模板
+skillfmt config --template > skillfmt.toml  # 打印配置模板
 ```
 
 子命令：
@@ -40,7 +40,7 @@ skillfmt config-template > skillfmt.toml  # 打印配置模板
 | `format` | 格式化文件或 stdin；默认写到 stdout，`-w` 原地写入 |
 | `check` | 报告需要格式化的输入；有差异 exit 1 |
 | `diff` | 输出 unified diff；有差异 exit 1 |
-| `config-template` | 把带注释的配置模板打印到 stdout |
+| `config` | 打印模板、读取/写入配置值、查看当前生效的配置文件 |
 
 选项（`-w` 仅用于 `format`，其余由三个格式化子命令共用）：
 
@@ -64,6 +64,15 @@ skillfmt config-template > skillfmt.toml  # 打印配置模板
 帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定。它们可写在子命令前后，例如 `skillfmt --zh check` 与 `skillfmt check --zh` 等价。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
 
 帮助按“选项一句话说明 + 末尾退出码与语言规则”组织；只有 `--lines`、`--line-width` 等非显然行为才展开说明。
+
+`config` 动作（互斥，必须选一个）：
+
+| 动作 | 说明 |
+| --- | --- |
+| `--template` | 打印带注释的 `skillfmt.toml` 模板 |
+| `--get KEY` | 打印 `KEY` 的生效值；没有配置文件时取默认值 |
+| `--set KEY VALUE` | 写入发现到的配置文件；没有时在当前目录创建 `skillfmt.toml` |
+| `--trace` | 打印当前生效的配置文件；没有时输出 `built-in defaults` |
 
 ## 格式分类
 
@@ -112,14 +121,21 @@ hanging = ["let", "letseq", "letrec", "quote"]
 
 `wrapping=true` 自动要求 `indent` 与 `spacing`；`comments=true` 自动要求 `indent`。
 
-生成模板：
+配置命令：
 
 ```sh
-skillfmt config-template > skillfmt.toml        # 英文注释
-skillfmt --zh config-template > skillfmt.toml   # 中文注释
+skillfmt config --template > skillfmt.toml          # 英文注释
+skillfmt --zh config --template > skillfmt.toml     # 中文注释
+skillfmt config --get format.width                  # 读取生效值
+skillfmt config --set format.width 100              # 写入当前配置
+skillfmt config --set categories.wrapping false
+skillfmt config --set format.base_indent unset      # 删除该键，恢复默认行为
+skillfmt config --trace                             # 查看生效文件
 ```
 
-模板包含全部配置键的注释与默认值，只打印到 stdout，由用户自行重定向或保存；skillfmt 不写任何文件。注释语言随 `--zh` / `--en` 选择。
+键名使用点号形式：`format.width`、`format.indent`、`format.base_indent`、`format.output_style`、`categories.<名称>`、`safety.unknown`、`rules.inScheme`、`rules.case`、`rules.hanging`。
+
+`--template` 只打印到 stdout，不写文件；`--set` 才会写入文件。`--set` 可用 `--config PATH` 指定目标，写入前会重新解析校验，非法值不会落盘。模板注释语言随 `--zh` / `--en` 选择。
 
 ## 编辑器
 

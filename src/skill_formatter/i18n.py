@@ -24,11 +24,13 @@ TEXTS: dict[str, dict[str, str]] = {
         "command_format": "format files or stdin",
         "command_check": "report files that need formatting",
         "command_diff": "print unified diffs",
-        "command_config_template": "print a skillfmt.toml template",
+        "command_config": "inspect or update configuration",
         "format_description": "Format files or stdin; write to stdout unless --write is given.",
         "check_description": "Report files or stdin that need formatting; exit 1 if any differ.",
         "diff_description": "Print unified diffs for files or stdin that need formatting.",
-        "config_template_description": "Print a commented skillfmt.toml template to stdout.",
+        "config_description": (
+            "Print the template, read or write a configuration value, or trace the active file."
+        ),
         "paths": (
             "Input file or directory ('-' = stdin). Directories are searched recursively for "
             "*.il and *.ils; with no PATH, stdin is read."
@@ -54,12 +56,20 @@ TEXTS: dict[str, dict[str, str]] = {
             "Skipping wrapping keeps original line breaks."
         ),
         "config": "Read settings from PATH instead of searching for skillfmt.toml.",
+        "config_file": (
+            "Config file to read or update; default: discover skillfmt.toml from the current "
+            "directory."
+        ),
         "strict": "Treat unsupported-syntax warnings as errors (no write).",
         "best_effort": (
             "Reserved whitespace-only fallback; currently keeps whole top-level forms unchanged."
         ),
         "quiet": "Do not print unsupported-syntax warnings.",
         "verbose": "Print config source and per-input status to stderr.",
+        "config_template": "print a commented skillfmt.toml template",
+        "config_get": "print the effective value of KEY",
+        "config_set": "write KEY VALUE to the active config file; VALUE may be 'unset'",
+        "config_trace": "print the config file in effect",
         "force_zh": "Force Chinese help and diagnostics.",
         "force_en": "Force English help and diagnostics.",
         "epilog": (
@@ -73,9 +83,11 @@ TEXTS: dict[str, dict[str, str]] = {
             "Language: --zh/--en are mutually exclusive, override locale detection, and affect\n"
             "only help and diagnostics."
         ),
-        "config_template_epilog": (
-            "The template is printed to stdout only; redirect it to save a file.\n"
-            "Language: --zh/--en are mutually exclusive and control the template comments."
+        "config_epilog": (
+            "Exactly one action is required. --get reads the discovered file or defaults;\n"
+            "--set updates the discovered file or creates skillfmt.toml in the current\n"
+            "directory. Use --trace to see which file is active. Keys use dotted names such\n"
+            "as format.width, categories.wrapping, safety.unknown or rules.hanging."
         ),
         "warning_label": "warning",
         "would_reformat": "would reformat",
@@ -83,6 +95,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "no_skill_files": "no .il or .ils files found",
         "verbose_config": "config: {path}",
         "verbose_no_config": "config: built-in defaults",
+        "config_defaults": "built-in defaults",
+        "config_updated": "updated: {path}",
         "verbose_changed": "{path}: formatted",
         "verbose_unchanged": "{path}: unchanged",
         "err_range_format": "expected A:B",
@@ -116,11 +130,11 @@ TEXTS: dict[str, dict[str, str]] = {
         "command_format": "格式化文件或 stdin",
         "command_check": "报告需要格式化的文件",
         "command_diff": "输出 unified diff",
-        "command_config_template": "打印 skillfmt.toml 模板",
+        "command_config": "查看或修改配置",
         "format_description": "格式化文件或 stdin；未给 --write 时写到 stdout。",
         "check_description": "报告文件或 stdin 中需要格式化的内容；有差异退出 1。",
         "diff_description": "为需要格式化的文件或 stdin 输出 unified diff。",
-        "config_template_description": "把带注释的 skillfmt.toml 模板打印到 stdout。",
+        "config_description": "打印模板、读取或写入配置值，或查看当前生效的配置文件。",
         "paths": "输入文件或目录（'-' 表示 stdin）。目录递归查找 *.il/*.ils；无 PATH 时读 stdin。",
         "write": "原地改写有变化的文件；校验通过后原子替换。",
         "lines": (
@@ -135,10 +149,15 @@ TEXTS: dict[str, dict[str, str]] = {
         "only": "只启用给定分类（名称见 --skip）。",
         "skip": "跳过：eol/blank-lines/indent/spacing/wrapping/comments；关闭 wrapping 保留换行。",
         "config": "从 PATH 读取配置，不再向上查找 skillfmt.toml。",
+        "config_file": "要读取或写入的配置文件；默认从当前目录向上查找 skillfmt.toml。",
         "strict": "把未支持语法警告视为错误（不写文件）。",
         "best_effort": "预留的纯空白回退；目前仍原样保留整个顶层 form。",
         "quiet": "不输出未支持语法警告。",
         "verbose": "向 stderr 输出配置来源与每个输入的状态。",
+        "config_template": "打印带注释的 skillfmt.toml 模板",
+        "config_get": "打印 KEY 的生效值",
+        "config_set": "把 KEY VALUE 写入当前配置文件；VALUE 可为 'unset'",
+        "config_trace": "打印当前生效的配置文件",
         "force_zh": "强制中文帮助与诊断。",
         "force_en": "强制英文帮助与诊断。",
         "epilog": (
@@ -151,9 +170,10 @@ TEXTS: dict[str, dict[str, str]] = {
             "回显到 stdout，保证 :%!skillfmt format 等编辑器过滤器不丢文本。\n"
             "语言: --zh/--en 互斥，覆盖自动检测，仅影响帮助与诊断。"
         ),
-        "config_template_epilog": (
-            "模板只打印到 stdout；需要保存时请自行重定向。\n"
-            "语言: --zh/--en 互斥，用于控制模板注释语言。"
+        "config_epilog": (
+            "必须且只能指定一个动作。--get 读取发现的配置文件或默认值；--set 更新发现的\n"
+            "文件，没有时在当前目录创建 skillfmt.toml；--trace 显示当前生效的文件。键名\n"
+            "使用点号形式，如 format.width、categories.wrapping、safety.unknown、rules.hanging。"
         ),
         "warning_label": "警告",
         "would_reformat": "需要重新格式化",
@@ -161,6 +181,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "no_skill_files": "未找到 .il 或 .ils 文件",
         "verbose_config": "配置: {path}",
         "verbose_no_config": "配置: 内置默认值",
+        "config_defaults": "内置默认值",
+        "config_updated": "已更新: {path}",
         "verbose_changed": "{path}: 已格式化",
         "verbose_unchanged": "{path}: 未变化",
         "err_range_format": "格式应为 A:B",
