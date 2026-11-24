@@ -8,12 +8,14 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, cast
 
 from rich_argparse import RichHelpFormatter
 
 from . import __version__
 from .config import ConfigError, load_config
 from .formatter import FormatError, FormatResult, format_range, format_source
+from .i18n import TEXTS, detect_language, text
 from .options import CATEGORIES, Options
 
 
@@ -53,44 +55,60 @@ def _parse_width(text: str) -> int:
     return value
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
+    lang = lang or detect_language()
+    strings = {key: text(lang, key) for key in TEXTS[lang]}
+
+    class LocalizedFormatter(RichHelpFormatter):
+        def add_usage(self, usage, actions, groups, prefix=None):  # type: ignore[no-untyped-def]
+            super().add_usage(usage, actions, groups, prefix=prefix or strings["usage"])
+
     parser = argparse.ArgumentParser(
         prog="skillfmt",
-        description="Format Cadence SKILL source conservatively.",
-        formatter_class=RichHelpFormatter,
+        description=strings["description"],
+        formatter_class=LocalizedFormatter,
+        add_help=False,
     )
-    parser.add_argument("paths", nargs="*", metavar="PATH", help="files or directories")
-    parser.add_argument("-w", "--write", action="store_true", help="write files in place")
-    parser.add_argument("--check", action="store_true", help="check without writing")
-    parser.add_argument("--diff", action="store_true", help="print a unified diff")
+    parser.add_argument("paths", nargs="*", metavar="PATH", help=strings["paths"])
+    parser.add_argument("-w", "--write", action="store_true", help=strings["write"])
+    parser.add_argument("--check", action="store_true", help=strings["check"])
+    parser.add_argument("--diff", action="store_true", help=strings["diff"])
     parser.add_argument(
         "--lines",
         action="append",
         type=_parse_line_range,
         metavar="A:B",
-        help="format only lines A:B (1-based, inclusive; repeatable)",
+        help=strings["lines"],
     )
     parser.add_argument(
         "--line-width",
         type=_parse_width,
         dest="line_width",
         metavar="N",
-        help="line width limit (default: 150, or format.width from config)",
+        help=strings["line_width"],
     )
-    parser.add_argument("--base-indent", type=int, metavar="N", help="base indentation")
-    parser.add_argument("--stdin-path", metavar="PATH", help="file path for stdin input")
-    parser.add_argument("--only", type=_parse_categories, metavar="CATS", help="only categories")
-    parser.add_argument("--skip", type=_parse_categories, metavar="CATS", help="skip categories")
-    parser.add_argument("--config", type=Path, metavar="PATH", help="configuration file")
-    parser.add_argument("--strict", action="store_true", help="treat warnings as errors")
+    parser.add_argument("--base-indent", type=int, metavar="N", help=strings["base_indent"])
+    parser.add_argument("--stdin-path", metavar="PATH", help=strings["stdin_path"])
+    parser.add_argument("--only", type=_parse_categories, metavar="CATS", help=strings["only"])
+    parser.add_argument("--skip", type=_parse_categories, metavar="CATS", help=strings["skip"])
+    parser.add_argument("--config", type=Path, metavar="PATH", help=strings["config"])
+    parser.add_argument("--strict", action="store_true", help=strings["strict"])
     parser.add_argument(
         "--best-effort",
         action="store_true",
-        help="use conservative layout for unsupported reader syntax",
+        help=strings["best_effort"],
     )
-    parser.add_argument("-q", "--quiet", action="store_true", help="suppress warnings")
-    parser.add_argument("-v", "--verbose", action="store_true", help="show more details")
-    parser.add_argument("--version", action="version", version=f"skillfmt {__version__}")
+    parser.add_argument("-q", "--quiet", action="store_true", help=strings["quiet"])
+    parser.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
+    parser.add_argument("-h", "--help", action="help", help=strings["help"])
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"skillfmt {__version__}",
+        help=strings["version"],
+    )
+    parser._positionals.title = strings["positional"]
+    parser._optionals.title = strings["options"]
     return parser
 
 
@@ -172,6 +190,13 @@ def _print_warnings(path: str, warnings: list[str], quiet: bool) -> None:
         print(f"{path}: warning: {warning}", file=sys.stderr)
 
 
+def _reconfigure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            cast(Any, stream).reconfigure(encoding="utf-8", errors="replace", newline="\n")
+
+
 def _diff(path: str, before: str, after: str) -> str:
     return "".join(
         difflib.unified_diff(
@@ -184,6 +209,7 @@ def _diff(path: str, before: str, after: str) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _reconfigure_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.only is not None and args.skip is not None:

@@ -50,6 +50,8 @@ skillfmt --lines 10:20 file.il   # 只格式化第 10-20 行
 
 `stdin` 格式化模式出错时会把输入原字节写回 stdout 并返回 2，保证 `:%!skillfmt` 与编辑器不会丢文本。
 
+帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；可用 `SKILLFMT_LANG=zh` 或 `SKILLFMT_LANG=en` 显式覆盖。
+
 ## 格式分类
 
 默认全部开启：

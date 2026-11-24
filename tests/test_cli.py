@@ -6,13 +6,20 @@ import sys
 from pathlib import Path
 
 
-def run_cli(args: list[str], data: str | None = None) -> subprocess.CompletedProcess[str]:
+def run_cli(
+    args: list[str],
+    data: str | None = None,
+    env_extra: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ)
     env["NO_COLOR"] = "1"
+    if env_extra:
+        env.update(env_extra)
     return subprocess.run(
         [sys.executable, "-m", "skill_formatter", *args],
         input=data,
         text=True,
+        encoding="utf-8",
         capture_output=True,
         env=env,
         check=False,
@@ -47,7 +54,7 @@ def test_write_in_place(tmp_path: Path) -> None:
 
 
 def test_help_is_stable_without_color() -> None:
-    result = run_cli(["-h"])
+    result = run_cli(["-h"], env_extra={"SKILLFMT_LANG": "en"})
     assert result.returncode == 0
     assert "Usage: skillfmt" in result.stdout
     assert "--line-width" in result.stdout
@@ -62,3 +69,48 @@ def test_width_option_controls_wrapping() -> None:
     wide = run_cli(["--line-width", "200"], source)
     assert wide.returncode == 0
     assert wide.stdout == source
+
+
+def test_help_language_override_chinese() -> None:
+    result = run_cli(["-h"], env_extra={"SKILLFMT_LANG": "zh"})
+    assert result.returncode == 0
+    assert "用法:" in result.stdout
+    assert "保守格式化" in result.stdout
+    assert "选项" in result.stdout
+    assert "Usage:" not in result.stdout
+
+
+def test_help_language_override_english() -> None:
+    result = run_cli(["-h"], env_extra={"SKILLFMT_LANG": "en"})
+    assert result.returncode == 0
+    assert "Usage:" in result.stdout
+    assert "Options" in result.stdout
+    assert "用法:" not in result.stdout
+
+
+def test_help_language_auto_from_locale() -> None:
+    result = run_cli(
+        ["-h"],
+        env_extra={
+            "SKILLFMT_LANG": "",
+            "LC_ALL": "zh_CN.UTF-8",
+            "LANG": "zh_CN.UTF-8",
+        },
+    )
+    assert result.returncode == 0
+    assert "用法:" in result.stdout
+
+
+def test_help_language_auto_english_locale() -> None:
+    result = run_cli(
+        ["-h"],
+        env_extra={
+            "SKILLFMT_LANG": "",
+            "LC_ALL": "",
+            "LC_MESSAGES": "",
+            "LANGUAGE": "",
+            "LANG": "en_US.UTF-8",
+        },
+    )
+    assert result.returncode == 0
+    assert "Usage:" in result.stdout
