@@ -139,6 +139,22 @@ errset({
 
 单行时写 `{ x y }`；多行时 `{` 与 `}` 各占边界，体缩进 4 格。
 
+### `list` 调用
+
+`list` 能单行则单行；超宽换行时**每个元素独占一行**，不做同行填充：
+
+```lisp
+list("first long element ..." "second long element ..." "third long element ...")
+```
+
+```lisp
+list(
+    "first long element ..."
+    "second long element ..."
+    "third long element ..."
+)
+```
+
 ## 特殊形式
 
 ### `procedure` / `defmacro` / `defmethod`

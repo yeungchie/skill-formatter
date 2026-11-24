@@ -94,6 +94,13 @@ def test_two_blank_lines_between_definitions() -> None:
     assert format_source(source).text == expected
 
 
+def test_list_wraps_one_element_per_line() -> None:
+    assert format_source("list(1 2 3333)").text == "list(1 2 3333)\n"
+    long = 'list("' + "a" * 80 + '" "' + "b" * 80 + '")'
+    expected = 'list(\n    "' + "a" * 80 + '"\n    "' + "b" * 80 + '"\n)\n'
+    assert format_source(long).text == expected
+
+
 def test_comment_stays_with_following_definition() -> None:
     source = "procedure(a()\n1\n)\n\n; doc\nprocedure(b()\n2\n)\n"
     expected = "procedure(a()\n    1\n)\n\n\n; doc\nprocedure(b()\n    2\n)\n"

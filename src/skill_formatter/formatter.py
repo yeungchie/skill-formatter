@@ -632,11 +632,15 @@ class Renderer:
         self.out.write(node.value + "(")
         if node.children:
             self.out.newline(indent + self.options.indent)
-            self._render_args(node.children, indent + self.options.indent)
+            self._render_args(
+                node.children,
+                indent + self.options.indent,
+                one_per_line=node.value == "list",
+            )
         self.out.newline(indent)
         self.out.write(")")
 
-    def _render_args(self, args: list[Node], indent: int) -> None:
+    def _render_args(self, args: list[Node], indent: int, one_per_line: bool = False) -> None:
         first = True
         for arg in args:
             if arg.kind == "comment":
@@ -650,6 +654,15 @@ class Renderer:
                 first = True
                 continue
             flat = self.flat(arg)
+            if one_per_line:
+                if not first:
+                    self.out.newline(indent)
+                if flat is not None:
+                    self.out.write(flat)
+                else:
+                    self.render(arg, indent)
+                first = False
+                continue
             if (
                 not first
                 and flat is not None
