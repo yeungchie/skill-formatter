@@ -458,9 +458,7 @@ def _prescan_language(argv: list[str]) -> str | None:
     return None
 
 
-def main(argv: list[str] | None = None) -> int:
-    _reconfigure_stdio()
-    arguments = list(sys.argv[1:] if argv is None else argv)
+def _main(arguments: list[str]) -> int:
     parser = build_parser(_prescan_language(arguments))
     args = parser.parse_args(arguments)
     lang = "zh" if args.zh else "en" if args.en else detect_language()
@@ -587,6 +585,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in {"check", "diff"} and changed:
         return 1
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    _reconfigure_stdio()
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    try:
+        return _main(arguments)
+    except KeyboardInterrupt:
+        lang = _prescan_language(arguments) or detect_language()
+        print(f"skillfmt: {tr(lang, 'interrupted')}", file=sys.stderr)
+        return 130
 
 
 if __name__ == "__main__":

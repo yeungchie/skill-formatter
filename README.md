@@ -63,6 +63,8 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 
 `stdin` 读取到 EOF 为止；POSIX 终端用 `Ctrl+D` 结束输入，Windows 控制台通常用 `Ctrl+Z`，或改用管道/重定向输入。
 
+`Ctrl+C` 视为中止：返回 130，不写文件，也不输出部分格式化结果。
+
 帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定。它们可写在子命令前后，例如 `skillfmt --zh check` 与 `skillfmt check --zh` 等价。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
 
 帮助只介绍工具用途、子命令与选项；退出码、语言检测和实现取舍等细节留在本文档。

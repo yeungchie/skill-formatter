@@ -44,6 +44,20 @@ def test_stdin_eof_is_empty_input() -> None:
         assert result.stderr == ""
 
 
+def test_keyboard_interrupt_exits_130(monkeypatch, capsys) -> None:
+    from skill_formatter import cli
+
+    def interrupt() -> bytes:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli, "_read_stdin", interrupt)
+    code = cli.main(["--en", "format"])
+    captured = capsys.readouterr()
+    assert code == 130
+    assert captured.out == ""
+    assert "interrupted" in captured.err
+
+
 def test_stdin_check() -> None:
     result = run_cli(
         ["check"],
