@@ -36,6 +36,16 @@ lines are replaced; the selection is formatted as a fragment using its own
 base indentation. Incomplete fragments are left unchanged with a diagnostic,
 and text outside the selected lines is preserved byte for byte.
 
+Upgrade the installed CLI whenever the formatter or this extension changes:
+
+```sh
+cd skill-formatter
+uv tool install --force .
+```
+
+If the CLI changes text outside the selection, the extension refuses the edit
+and reports the command in the output channel.
+
 `skillFormatter.enableRangeFormatting` controls whether range formatting is
 registered, and changes take effect immediately.
 

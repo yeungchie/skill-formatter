@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildArgs, minimalEdit, runCommand } from "../format";
+import {
+  buildArgs,
+  changedSpan,
+  containsSpan,
+  minimalEdit,
+  runCommand,
+} from "../format";
 
 test("buildArgs includes config, stdin path and range", () => {
   assert.deepEqual(
@@ -37,6 +43,18 @@ test("minimalEdit finds the changed span", () => {
     end: 5,
     text: " a ",
   });
+});
+
+test("changedSpan stays inside the selected lines", () => {
+  const inside = changedSpan("foo( 1 )\nbar( 3 )\n", "foo(1)\nbar( 3 )\n");
+  assert.ok(inside);
+  assert.equal(containsSpan({ start: 0, end: 9 }, inside), true);
+});
+
+test("changedSpan detects edits outside the selected lines", () => {
+  const outside = changedSpan("foo( 1 )\nbar( 3 )\n", "foo(1)\nbar(3)\n");
+  assert.ok(outside);
+  assert.equal(containsSpan({ start: 0, end: 9 }, outside), false);
 });
 
 test("runFormatter pipes stdin to stdout", async () => {

@@ -193,6 +193,15 @@ code --install-extension skill-formatter-0.1.0.vsix
 
 扩展通过 PATH 上的 `skillfmt` 工作；可在设置中改 `skillFormatter.executablePath`。
 
+扩展只负责调用 CLI；升级插件或本仓库后，务必同步更新已安装的 CLI，否则 VS Code 仍会调用旧版 `skillfmt`：
+
+```sh
+cd skill-formatter
+uv tool install --force .
+```
+
+选区格式化还会校验实际改动范围；若 CLI 试图修改选区外文本，扩展会拒绝本次编辑并在输出面板说明。
+
 ### Vim（7.4+）
 
 插件位于 `editors/vim/`。完整安装、配置与排错见 [editors/vim/README.md](editors/vim/README.md)。

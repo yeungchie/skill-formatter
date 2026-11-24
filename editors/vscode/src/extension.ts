@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
-import { type FormatOptions, minimalEdit, runFormatter } from "./format";
+import {
+  type FormatOptions,
+  buildArgs,
+  changedSpan,
+  containsSpan,
+  minimalEdit,
+  runFormatter,
+} from "./format";
 
 const output = vscode.window.createOutputChannel("SKILL Formatter");
 
@@ -26,6 +33,22 @@ function lineRange(range: vscode.Range): string {
   return `${start}:${end}`;
 }
 
+function selectionBounds(
+  document: vscode.TextDocument,
+  range: vscode.Range,
+): { start: number; end: number } {
+  const endLine =
+    range.end.character === 0 && range.end.line > range.start.line
+      ? range.end.line - 1
+      : range.end.line;
+  const start = document.offsetAt(new vscode.Position(range.start.line, 0));
+  const end =
+    endLine + 1 < document.lineCount
+      ? document.offsetAt(new vscode.Position(endLine + 1, 0))
+      : document.getText().length;
+  return { start, end };
+}
+
 async function formatDocument(
   document: vscode.TextDocument,
   range?: vscode.Range,
@@ -43,6 +66,20 @@ async function formatDocument(
     if (result.code !== 0) {
       vscode.window.showErrorMessage("skillfmt: formatting failed; document left unchanged");
       return [];
+    }
+    if (range) {
+      const changed = changedSpan(text, result.stdout);
+      const bounds = selectionBounds(document, range);
+      if (changed && !containsSpan(bounds, changed)) {
+        output.appendLine(`command: ${options.executable} ${buildArgs(options).join(" ")}`);
+        output.appendLine(
+          `skillfmt changed text outside lines ${options.lines}; edit refused`,
+        );
+        vscode.window.showErrorMessage(
+          "skillfmt: formatter changed text outside the selection; update the skillfmt executable and retry",
+        );
+        return [];
+      }
     }
     const edit = minimalEdit(text, result.stdout);
     if (!edit) {

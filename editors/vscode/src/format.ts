@@ -21,6 +21,11 @@ export interface MinimalEdit {
   text: string;
 }
 
+export interface Span {
+  start: number;
+  end: number;
+}
+
 export function buildArgs(options: FormatOptions): string[] {
   const args: string[] = ["format"];
   if (options.configPath) {
@@ -87,6 +92,15 @@ export function runFormatter(options: FormatOptions, text: string): Promise<RunR
 }
 
 export function minimalEdit(before: string, after: string): MinimalEdit | null {
+  const span = changedSpan(before, after);
+  if (!span) {
+    return null;
+  }
+  const afterEnd = after.length - (before.length - span.end);
+  return { start: span.start, end: span.end, text: after.slice(span.start, afterEnd) };
+}
+
+export function changedSpan(before: string, after: string): Span | null {
   if (before === after) {
     return null;
   }
@@ -95,15 +109,14 @@ export function minimalEdit(before: string, after: string): MinimalEdit | null {
   while (start < max && before[start] === after[start]) {
     start += 1;
   }
-  let beforeEnd = before.length;
-  let afterEnd = after.length;
-  while (
-    beforeEnd > start &&
-    afterEnd > start &&
-    before[beforeEnd - 1] === after[afterEnd - 1]
-  ) {
-    beforeEnd -= 1;
-    afterEnd -= 1;
+  let suffix = 0;
+  const limit = max - start;
+  while (suffix < limit && before[before.length - 1 - suffix] === after[after.length - 1 - suffix]) {
+    suffix += 1;
   }
-  return { start, end: beforeEnd, text: after.slice(start, afterEnd) };
+  return { start, end: before.length - suffix };
+}
+
+export function containsSpan(outer: Span, inner: Span): boolean {
+  return inner.start >= outer.start && inner.end <= outer.end;
 }
