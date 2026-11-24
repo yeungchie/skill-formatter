@@ -136,7 +136,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     common.add_argument("--skip", type=parse_categories, metavar="CATS", help=strings["skip"])
     common.add_argument("--config", type=Path, metavar="PATH", help=strings["config"])
     common.add_argument("--strict", action="store_true", help=strings["strict"])
-    common.add_argument("--best-effort", action="store_true", help=argparse.SUPPRESS)
+    common.add_argument("--best-effort", action="store_true", help=strings["best_effort"])
     common.add_argument("-q", "--quiet", action="store_true", help=strings["quiet"])
     common.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
 
@@ -199,13 +199,6 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         formatter_class=LocalizedFormatter,
     )
     set_titles(config_parser, strings["commands"])
-    config_parser.add_argument(
-        "--config",
-        type=Path,
-        metavar="PATH",
-        default=argparse.SUPPRESS,
-        help=strings["config_file"],
-    )
     add_language_options(config_parser, suppress_default=True)
     add_help_option(config_parser)
     config_sub = config_parser.add_subparsers(
@@ -261,6 +254,10 @@ def _apply_cli_options(args: argparse.Namespace, options: Options) -> Options:
     cats = set(options.categories)
     if args.only is not None:
         cats = set(args.only)
+        if "wrapping" in cats:
+            cats.update({"indent", "spacing", "comments"})
+        if "comments" in cats:
+            cats.add("indent")
     if args.skip is not None:
         cats -= set(args.skip)
     unknown = options.unknown
@@ -277,9 +274,8 @@ def _apply_cli_options(args: argparse.Namespace, options: Options) -> Options:
         in_scheme=options.in_scheme,
         case_mode=options.case_mode,
         hanging=options.hanging,
-        output_style=options.output_style,
         config_path=options.config_path,
-        stdin_path=args.stdin_path,
+        warnings=list(options.warnings),
     )
 
 
@@ -306,9 +302,8 @@ def _format_text(text: str, args: argparse.Namespace, options: Options) -> Forma
             in_scheme=opts.in_scheme,
             case_mode=opts.case_mode,
             hanging=opts.hanging,
-            output_style=opts.output_style,
             config_path=opts.config_path,
-            stdin_path=opts.stdin_path,
+            warnings=list(opts.warnings),
         )
     return format_source(text, opts)
 

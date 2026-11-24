@@ -901,14 +901,23 @@ def _format_conservative(text: str, lexed: LexResult, options: Options) -> str:
 
 def format_source(text: str, options: Options | None = None) -> FormatResult:
     opts = (options or Options()).normalized()
-    if opts.output_style != "c":
-        raise FormatError("output_style 's' is not implemented yet")
     try:
-        lexed, root, warnings, opaque = _parse(text)
+        lexed, root, parse_warnings, opaque = _parse(text)
     except (LexError, ParseIssue) as exc:
         raise FormatError(str(exc)) from exc
-    if opts.unknown == "error" and warnings:
-        raise FormatError(warnings[0])
+    if opts.unknown == "error" and parse_warnings:
+        raise FormatError(parse_warnings[0])
+    warnings = list(opts.warnings) + parse_warnings
+
+    if opts.unknown == "conservative" and parse_warnings:
+        output = _format_conservative(text, lexed, opts)
+        try:
+            _, out_root, _, _ = _parse(output)
+        except (LexError, ParseIssue) as exc:
+            raise FormatError(f"internal verification failed: {exc}") from exc
+        if _canonical_without_opaque(root) != _canonical_without_opaque(out_root):
+            raise FormatError("internal verification failed: structure changed")
+        return FormatResult(output, output != text, warnings, opaque)
 
     if not opts.enabled("wrapping"):
         output = _format_conservative(text, lexed, opts)
@@ -977,9 +986,14 @@ def format_range(
     text: str, ranges: list[tuple[int | None, int | None]], options: Options | None = None
 ) -> FormatResult:
     opts = (options or Options()).normalized()
-    lexed, root, warnings, opaque = _parse(text)
-    if opts.unknown == "error" and warnings:
-        raise FormatError(warnings[0])
+    if not opts.enabled("wrapping"):
+        raise FormatError("range formatting requires wrapping")
+    lexed, root, parse_warnings, opaque = _parse(text)
+    if opts.unknown == "error" and parse_warnings:
+        raise FormatError(parse_warnings[0])
+    if opts.unknown == "conservative" and parse_warnings:
+        raise FormatError("conservative unknown policy is not supported with range formatting")
+    warnings = list(opts.warnings) + parse_warnings
     offsets = _line_offsets(text)
     total_lines = max(1, len(offsets))
 
@@ -1028,7 +1042,8 @@ def format_range(
         line_end = text.find("\n", node.end)
         if line_end < 0:
             line_end = len(text)
-        replacement = "\n".join(replacement_lines)
+        line_sep = "\n" if opts.enabled("eol") else lexed.eol
+        replacement = line_sep.join(replacement_lines)
         replacements.append((line_start, line_end, replacement))
 
     output = text

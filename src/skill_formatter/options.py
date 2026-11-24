@@ -42,9 +42,7 @@ class Options:
     in_scheme: Literal["flat", "indent"] = "flat"
     case_mode: Literal["align", "block"] = "align"
     hanging: tuple[str, ...] = DEFAULT_HANGING
-    output_style: Literal["c", "s"] = "c"
     config_path: str | None = None
-    stdin_path: str | None = None
     warnings: list[str] = field(default_factory=list)
 
     def enabled(self, name: str) -> bool:
@@ -53,10 +51,15 @@ class Options:
     def normalized(self) -> Options:
         """Return a copy with dependency rules applied."""
         cats = set(self.categories)
+        warnings = list(self.warnings)
+        if "comments" in cats and "indent" not in cats:
+            cats.discard("comments")
+            warnings.append("comments disabled because indent is disabled")
         if "wrapping" in cats:
-            cats.update({"indent", "spacing"})
-        if "comments" in cats:
-            cats.add("indent")
+            missing = [name for name in ("indent", "spacing", "comments") if name not in cats]
+            if missing:
+                cats.discard("wrapping")
+                warnings.append("wrapping disabled because " + ", ".join(missing) + " disabled")
         return Options(
             width=self.width,
             indent=self.indent,
@@ -66,7 +69,6 @@ class Options:
             in_scheme=self.in_scheme,
             case_mode=self.case_mode,
             hanging=self.hanging,
-            output_style=self.output_style,
             config_path=self.config_path,
-            stdin_path=self.stdin_path,
+            warnings=warnings,
         )

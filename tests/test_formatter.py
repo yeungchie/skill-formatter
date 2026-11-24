@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from skill_formatter import Options, format_source
+from skill_formatter import CATEGORIES, Options, format_source
 from skill_formatter.config import load_config
 
 
@@ -54,6 +54,13 @@ def test_config_hanging_changes_layout(tmp_path: Path) -> None:
     config.write_text("[rules]\nhanging = []\n", encoding="utf-8")
     result = format_source("let((len i)\nlen = 1\n)", load_config(config)).text
     assert result == "let(\n    (len i)\n    len = 1\n)\n"
+
+
+def test_disabling_spacing_falls_back_to_conservative_layout() -> None:
+    categories = frozenset(CATEGORIES) - {"spacing"}
+    result = format_source("a=1\n", Options(categories=categories))
+    assert result.text == "a=1\n"
+    assert any("wrapping disabled" in warning for warning in result.warnings)
 
 
 def test_defclass_slots() -> None:

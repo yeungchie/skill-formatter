@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from skill_formatter import format_range
+import pytest
+
+from skill_formatter import CATEGORIES, Options, format_range
+from skill_formatter.formatter import FormatError
 
 SOURCE = """useNamespace("x")
 procedure(foo(a "t")
@@ -36,3 +39,14 @@ def test_comment_only_range_is_noop() -> None:
 def test_base_indent_override() -> None:
     source = "foo(a)\n"
     assert format_range(source, [(1, 1)], options=None).text == "foo(a)\n"
+
+
+def test_range_requires_wrapping() -> None:
+    categories = frozenset(CATEGORIES) - {"wrapping"}
+    with pytest.raises(FormatError):
+        format_range("a=1\n", [(1, 1)], Options(categories=categories))
+
+
+def test_range_rejects_conservative_unknown_policy() -> None:
+    with pytest.raises(FormatError):
+        format_range("(+ a b)\n", [(1, 1)], Options(unknown="conservative"))

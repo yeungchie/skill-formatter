@@ -36,6 +36,19 @@ def test_stdin_filter() -> None:
     assert 'procedure(foo(a "t")\n    a = 1\n)\n' == result.stdout
 
 
+def test_best_effort_uses_conservative_layout() -> None:
+    result = run_cli(["format", "--best-effort"], "(+ a   b)\n")
+    assert result.returncode == 0
+    assert result.stdout == "(+ a b)\n"
+
+
+def test_skipping_required_category_disables_wrapping() -> None:
+    result = run_cli(["format", "--skip", "spacing"], "a=1\n", env_extra={"SKILLFMT_LANG": "en"})
+    assert result.returncode == 0
+    assert result.stdout == "a=1\n"
+    assert "wrapping disabled" in result.stderr
+
+
 def test_stdin_eof_is_empty_input() -> None:
     for command in ("format", "check", "diff"):
         result = run_cli([command], "")
@@ -114,7 +127,7 @@ def test_help_is_stable_without_color() -> None:
     assert result.returncode == 0
     assert "Usage: skillfmt format" in result.stdout
     assert "--line-width" in result.stdout
-    assert "--best-effort" not in result.stdout
+    assert "--best-effort" in result.stdout
     assert "Reserved" not in result.stdout
     assert "\x1b[" not in result.stdout
 
@@ -244,7 +257,6 @@ def test_config_template_is_loadable(tmp_path: Path) -> None:
     assert options.width == 150
     assert options.indent == 4
     assert options.base_indent is None
-    assert options.output_style == "c"
     assert options.unknown == "opaque"
     assert options.config_path == str(target)
 
@@ -257,9 +269,9 @@ def test_config_template_uses_selected_language() -> None:
     zh_text = chinese.stdout
     en_text = english.stdout
     assert "配置" in zh_text
-    assert "输出风格" in zh_text
+    assert "缩进" in zh_text
     assert "configuration" in en_text
-    assert "Output style" in en_text
+    assert "indentation" in en_text
     assert "width = 150" in zh_text
     assert "width = 150" in en_text
 
@@ -268,7 +280,10 @@ def test_config_help_lists_nested_subcommands() -> None:
     result = run_cli(["--en", "config", "-h"], env_extra={"COLUMNS": "100"})
     assert result.returncode == 0
     assert "{template,get,set,trace}" in result.stdout
-    assert "--config PATH" in result.stdout
+    assert "--config PATH" not in result.stdout
+    leaf = run_cli(["--en", "config", "get", "-h"], env_extra={"COLUMNS": "100"})
+    assert leaf.returncode == 0
+    assert "--config PATH" in leaf.stdout
 
 
 def test_config_requires_a_subcommand() -> None:
@@ -411,7 +426,7 @@ def test_config_set_and_get_with_explicit_path(tmp_path: Path) -> None:
     assert set_result.returncode == 0
     assert load_config(target).width == 88
     get_result = run_cli(
-        ["--en", "config", "--config", str(target), "get", "format.width"],
+        ["--en", "config", "get", "--config", str(target), "format.width"],
         cwd=tmp_path,
     )
     assert get_result.returncode == 0

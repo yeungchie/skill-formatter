@@ -42,14 +42,15 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "base_indent": "Indent of the outermost form.",
         "stdin_path": "Path stdin represents, used to locate skillfmt.toml.",
-        "only": "Only the given categories (names are listed under --skip).",
+        "only": "Only the given categories; required prerequisites are added.",
         "skip": (
             "Skip categories: eol, blank-lines, indent, spacing, wrapping, comments. "
-            "Skipping wrapping keeps original line breaks."
+            "Skipping wrapping, indent, spacing or comments keeps original line breaks."
         ),
         "config": "Read settings from PATH instead of searching for skillfmt.toml.",
         "config_file": "Config file to read or update.",
         "strict": "Treat unsupported-syntax warnings as errors.",
+        "best_effort": "Use conservative layout for unsupported syntax.",
         "quiet": "Do not print unsupported-syntax warnings.",
         "verbose": "Print config source and per-input status to stderr.",
         "config_template": "print a commented skillfmt.toml template",
@@ -117,11 +118,12 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "base_indent": "最外层 form 的缩进。",
         "stdin_path": "stdin 对应的文件路径，用于查找 skillfmt.toml。",
-        "only": "只启用给定分类（名称见 --skip）。",
-        "skip": "跳过：eol/blank-lines/indent/spacing/wrapping/comments；关闭 wrapping 保留换行。",
+        "only": "只启用给定分类；会自动补齐依赖分类。",
+        "skip": "跳过：eol/blank-lines/indent/spacing/wrapping/comments。",
         "config": "从 PATH 读取配置，不再向上查找 skillfmt.toml。",
         "config_file": "要读取或写入的配置文件。",
         "strict": "把未支持语法警告视为错误。",
+        "best_effort": "未确认语法使用保守空白布局。",
         "quiet": "不输出未支持语法警告。",
         "verbose": "向 stderr 输出配置来源与每个输入的状态。",
         "config_template": "打印带注释的 skillfmt.toml 模板",

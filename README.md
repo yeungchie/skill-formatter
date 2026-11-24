@@ -54,7 +54,7 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 | `--stdin-path PATH` | stdin 输入对应的真实文件路径 |
 | `--only CATS` / `--skip CATS` | 只启用/跳过分类 |
 | `--strict` | 任一警告视为错误 |
-| `--best-effort` | 未确认语法保留原样（兼容预留） |
+| `--best-effort` | 未确认语法使用保守空白布局 |
 | `-v, --verbose` | 向 stderr 输出配置来源与每个输入的状态 |
 
 退出码：`0` 成功；`1` check/diff 有差异；`2` 用法、IO、解析/校验失败或 strict 警告。
@@ -91,7 +91,11 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 | `wrapping` | 结构重排与折行 |
 | `comments` | 独立注释重排缩进 |
 
-`--skip wrapping` 进入保守模式：保留原换行位置，只做缩进、空白、注释、空行与行尾归一。
+`--skip wrapping` 进入保守模式：保留原换行位置，只做缩进、空白、注释、空行与行尾归一。关闭 `indent`、`spacing` 或 `comments` 也会关闭 `wrapping`，并输出警告。
+
+`--lines` 需要结构重排，因此与关闭 `wrapping` 的组合会直接报错，不会静默忽略。
+
+`safety.unknown = "conservative"` 只适用于整文件格式化；与 `--lines` 组合且遇到未确认语法时会报错。
 
 顶层函数/类定义（`procedure`、`defmacro`、`defmethod`、`defclass`）之间固定保留两个空行；紧贴下一个定义的注释随该定义移动。
 
@@ -104,7 +108,6 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 width = 150
 indent = 4
 base_indent = 0
-output_style = "c"        # 目前只支持 "c"
 
 [categories]
 eol = true
@@ -115,7 +118,7 @@ wrapping = true
 comments = true
 
 [safety]
-unknown = "opaque"        # opaque | error | conservative
+unknown = "opaque"        # opaque | error | conservative（保守空白布局）
 
 [rules]
 inScheme = "flat"         # flat | indent
@@ -123,7 +126,7 @@ case = "align"            # align | block
 hanging = ["let", "letseq", "letrec", "prog", "case", "if", "when", "unless", "while", "foreach", "for", "quote"]
 ```
 
-`wrapping=true` 自动要求 `indent` 与 `spacing`；`comments=true` 自动要求 `indent`。
+`wrapping` 需要 `indent`、`spacing` 与 `comments`；显式关闭其中任一分类会关闭 `wrapping`。`comments` 需要 `indent`。
 
 `rules.hanging` 控制调用/特殊 form 的首参数是否留在头行；`procedure`、`lambda`、`defclass` 等定义的签名固定留在头行。
 
@@ -139,7 +142,7 @@ skillfmt config set format.base_indent unset      # 删除该键，恢复默认�
 skillfmt config trace                             # 查看生效文件
 ```
 
-键名使用点号形式：`format.width`、`format.indent`、`format.base_indent`、`format.output_style`、`categories.<名称>`、`safety.unknown`、`rules.inScheme`、`rules.case`、`rules.hanging`。
+键名使用点号形式：`format.width`、`format.indent`、`format.base_indent`、`categories.<名称>`、`safety.unknown`、`rules.inScheme`、`rules.case`、`rules.hanging`。
 
 `template` 只打印到 stdout，不写文件；`set` 才会写入文件。`get` / `set` / `trace` 可用 `--config PATH` 指定目标（写在子命令之后），写入前会重新解析校验，非法值不会落盘。模板注释语言随 `--zh` / `--en` 选择。
 
@@ -177,7 +180,7 @@ code --install-extension skillfmt-skill-formatter-0.1.0.vsix
 - 原子边界不可变：`a->b`、`1:2`、`x=1`、`x<3>` 等不会被拆开或合并。
 - 只调整空白与 C/S 调用括号位置；不把 `if` 改 `when`、不把 `strcat` 改 `lsprintf`。
 - 写入前重新解析输出，比较规范化 AST 与注释；不一致立即退出且不写文件。
-- 未确认语法、运算符头列表、非符号头、块注释、竖线符号、位域、未知 `#` 前缀等：含它的顶层 form 原样保留。
+- 未确认语法、运算符头列表、非符号头、块注释、竖线符号、位域、未知 `#` 前缀等：默认 `opaque` 下含它的顶层 form 原样保留；`conservative` 下整份输入改用保守空白布局。
 
 ## 开发
 

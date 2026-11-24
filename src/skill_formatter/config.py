@@ -34,7 +34,6 @@ def _build_keys() -> dict[str, KeySpec]:
         "format.width": KeySpec("format", "width", "int", 150, minimum=20),
         "format.indent": KeySpec("format", "indent", "int", 4, minimum=1),
         "format.base_indent": KeySpec("format", "base_indent", "int", None, minimum=0),
-        "format.output_style": KeySpec("format", "output_style", "str", "c", choices=("c", "s")),
         "safety.unknown": KeySpec(
             "safety",
             "unknown",
@@ -76,8 +75,6 @@ def config_option_value(options: Options, key: str) -> Any:
         return options.indent
     if key == "format.base_indent":
         return options.base_indent
-    if key == "format.output_style":
-        return options.output_style
     if key == "safety.unknown":
         return options.unknown
     if key == "rules.inScheme":
@@ -243,12 +240,10 @@ indent = 4
 # start at column 0 and stdin without --lines reuses the input indentation.
 # base_indent = 0
 
-# Output style. Only "c" (C-style calls) is implemented; "s" is reserved.
-output_style = "c"
-
 [categories]
 # Enable or disable individual formatting categories.
-# Disabling "wrapping" keeps the original line breaks.
+# "wrapping" requires indent, spacing and comments; disabling any of them
+# turns wrapping off and keeps the original line breaks.
 eol = true
 blank-lines = true
 indent = true
@@ -261,7 +256,7 @@ comments = true
 # not understand:
 #   "opaque"       keep that form byte-for-byte and print a warning (default)
 #   "error"        stop with exit status 2 (same as --strict)
-#   "conservative" reserved; currently behaves like "opaque"
+#   "conservative" use whitespace-only layout for the whole input
 unknown = "opaque"
 
 [rules]
@@ -295,12 +290,10 @@ indent = 4
 # stdin 且未使用 --lines 时沿用输入中的整体缩进。
 # base_indent = 0
 
-# 输出风格。目前只实现 "c"（C 风格调用）；"s" 为预留值。
-output_style = "c"
-
 [categories]
 # 分别开启或关闭各格式化分类。
-# 关闭 "wrapping" 会保留原有换行位置。
+# "wrapping" 需要 indent、spacing 与 comments；关闭其中任一分类会关闭 wrapping，
+# 保留原有换行位置。
 eol = true
 blank-lines = true
 indent = true
@@ -312,7 +305,7 @@ comments = true
 # 顶层 form 使用解析器无法识别的读取器语法时如何处理：
 #   "opaque"       整个 form 按原字节保留并输出警告（默认）
 #   "error"        以状态码 2 停止（等同于 --strict）
-#   "conservative" 预留值，目前行为与 "opaque" 相同
+#   "conservative" 对整份输入使用保守的空白布局
 unknown = "opaque"
 
 [rules]
@@ -371,7 +364,7 @@ def _options_from_data(data: dict[str, Any], config_path: Path | None) -> Option
     cats = data.get("categories", {})
     safety = data.get("safety", {})
     rules = data.get("rules", {})
-    _expect_keys(fmt, {"width", "indent", "base_indent", "output_style"}, "format")
+    _expect_keys(fmt, {"width", "indent", "base_indent"}, "format")
     _expect_keys(cats, set(CATEGORIES), "categories")
     _expect_keys(safety, {"unknown"}, "safety")
     _expect_keys(rules, {"inScheme", "case", "hanging"}, "rules")
@@ -379,15 +372,12 @@ def _options_from_data(data: dict[str, Any], config_path: Path | None) -> Option
     width = fmt.get("width", 150)
     indent = fmt.get("indent", 4)
     base_indent = fmt.get("base_indent")
-    output_style = fmt.get("output_style", "c")
     if not isinstance(width, int) or width < 20:
         raise ConfigError("format.width must be an integer >= 20")
     if not isinstance(indent, int) or indent < 1:
         raise ConfigError("format.indent must be a positive integer")
     if base_indent is not None and (not isinstance(base_indent, int) or base_indent < 0):
         raise ConfigError("format.base_indent must be a non-negative integer")
-    if output_style not in {"c", "s"}:
-        raise ConfigError('format.output_style must be "c" or "s"')
 
     enabled = set(CATEGORIES)
     for key, value in cats.items():
@@ -420,6 +410,5 @@ def _options_from_data(data: dict[str, Any], config_path: Path | None) -> Option
         in_scheme=in_scheme,
         case_mode=case_mode,
         hanging=tuple(hanging),
-        output_style=output_style,
         config_path=str(config_path) if config_path is not None else None,
     )

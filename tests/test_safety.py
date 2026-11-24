@@ -25,6 +25,11 @@ def test_strict_mode_rejects_opaque_forms() -> None:
         format_source("(+ a b)\n", Options(unknown="error"))
 
 
+def test_conservative_layout_for_unknown_syntax() -> None:
+    result = format_source("(+ a   b)\n", Options(unknown="conservative"))
+    assert result.text == "(+ a b)\n"
+
+
 def test_grouped_infix_is_not_flattened() -> None:
     source = "!(_Code(t_s close) == 42 && _Code(t_s close + 1) == 47)\n"
     result = format_source(source)
