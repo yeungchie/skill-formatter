@@ -43,6 +43,16 @@ def _parse_categories(text: str) -> set[str]:
     return names
 
 
+def _parse_width(text: str) -> int:
+    try:
+        value = int(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("width must be an integer") from exc
+    if value < 20:
+        raise argparse.ArgumentTypeError("width must be >= 20")
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="skillfmt",
@@ -59,6 +69,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=_parse_line_range,
         metavar="A:B",
         help="format only lines A:B (1-based, inclusive; repeatable)",
+    )
+    parser.add_argument(
+        "--width",
+        type=_parse_width,
+        metavar="N",
+        help="line width limit (default: 150, or format.width from config)",
     )
     parser.add_argument("--base-indent", type=int, metavar="N", help="base indentation")
     parser.add_argument("--stdin-path", metavar="PATH", help="file path for stdin input")
@@ -89,7 +105,7 @@ def _apply_cli_options(args: argparse.Namespace, options: Options) -> Options:
     elif args.best_effort:
         unknown = "conservative"
     return Options(
-        width=options.width,
+        width=args.width if args.width is not None else options.width,
         indent=options.indent,
         base_indent=args.base_indent if args.base_indent is not None else options.base_indent,
         categories=frozenset(cats),
