@@ -1,5 +1,5 @@
 [project]
-name = "skill-formatter"
+name = "skillfmt"
 version = "0.1.0"
 description = "A conservative formatter for Cadence SKILL source."
 readme = "README.md"

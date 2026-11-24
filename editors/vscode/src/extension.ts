@@ -130,7 +130,7 @@ async function formatDocument(
   } catch (error) {
     output.appendLine(String(error));
     vscode.window.showErrorMessage(
-      "skillfmt: cannot run executable; install it with `uv tool install skill-formatter`",
+      "skillfmt: cannot run executable; install it with `uv tool install .` from the skill-formatter repository",
     );
     return [];
   }
