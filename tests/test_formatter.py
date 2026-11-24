@@ -19,9 +19,6 @@ from skfmt.config import load_config
         ("!(a && b)", "!(a && b)\n"),
         ("a~>b", "a~>b\n"),
         ("a ~> b", "a~>b\n"),
-        ("a->()", "a->()\n"),
-        ("let(() a->())", "let(()\n    a->()\n)\n"),
-        ("let(() a~>())", "let(()\n    a~>()\n)\n"),
         ("car(g_edge)->x()", "car(g_edge)->x()\n"),
         ("x = remainder(n 3600)/60", "x = remainder(n 3600) / 60\n"),
         ("let((len i)\nlen = 1\n)", "let((len i)\n    len = 1\n)\n"),
@@ -50,6 +47,13 @@ def test_hanging_controls_head_line() -> None:
     assert format_source(generic, Options(width=40, hanging=("foo",))).text == (
         'foo("' + "a" * 20 + '"\n    "' + "b" * 20 + '"\n)\n'
     )
+
+
+def test_invalid_property_access_is_left_opaque() -> None:
+    for source in ("a->()\n", "let(() a->())\n", "let(() a~>())\n"):
+        result = format_source(source)
+        assert result.text == source
+        assert any("non-symbol right operand" in warning for warning in result.warnings)
 
 
 def test_config_hanging_changes_layout(tmp_path: Path) -> None:

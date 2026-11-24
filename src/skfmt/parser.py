@@ -328,22 +328,8 @@ class Parser:
                     nxt = self.peek()
                     if nxt.gap != "" or not self._can_start(nxt):
                         continue
-                    base = Node(
-                        "atom",
-                        value=token.text[: -len(op)],
-                        start=token.start,
-                        end=token.end - len(op),
-                        line=token.line,
-                        blank_before=token.blank_before,
-                    )
-                    right = self.parse_primary(context, allow_convert)
-                    return Node(
-                        "binary",
-                        value=op,
-                        children=[base, right],
-                        start=base.start,
-                        end=right.end,
-                        line=base.line,
+                    raise Unsupported(
+                        f"property access '{token.text}' with a non-symbol right operand"
                     )
                 return Node(
                     "atom",
