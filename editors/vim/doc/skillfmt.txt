@@ -1,0 +1,33 @@
+*skillfmt.txt*  Format SKILL source with skillfmt
+
+Requires Vim 7.4 or newer and the |skillfmt| command on $PATH.
+
+COMMANDS
+
+                                                        *:Skillfmt*
+:Skillfmt               Format the whole buffer.
+
+                                                        *:SkillfmtRange*
+:[range]SkillfmtRange   Format the smallest enclosing form(s) for the range.
+                        The whole buffer is sent to skillfmt with --lines, so
+                        text outside the range is preserved byte for byte.
+
+FILTERS
+
+  :%!skillfmt           Format the whole buffer through the CLI filter.
+  :'<,'>!skillfmt       Format a fragment; the formatter auto-detects its base
+                        indentation and echoes the input unchanged on error.
+
+OPTIONS
+
+  g:skillfmt_executable  Path to the executable. Default: "skillfmt".
+  g:skillfmt_args        Extra shell arguments appended to the command.
+
+Vim 7.4 NOTES
+
+The plugin uses only Vim 7.4 features: |system()|, |tempname()|,
+|writefile()|, |readfile()|, |winsaveview()| and shell redirection.  It does
+not use systemlist(), jobs, timers, JSON, lambdas or |->| method syntax.
+The buffer must use 'encoding' utf-8 for non-ASCII source.
+
+vim:tw=78:ts=8:ft=help:norl:

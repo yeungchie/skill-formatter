@@ -1,0 +1,88 @@
+{
+  "name": "skill-formatter",
+  "displayName": "SKILL Formatter",
+  "description": "Format Cadence SKILL source with skillfmt.",
+  "version": "0.1.0",
+  "publisher": "skillfmt",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": ["Formatters"],
+  "activationEvents": ["onLanguage:skill"],
+  "main": "./out/src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "skill",
+        "aliases": ["SKILL", "Skill"],
+        "extensions": [".il", ".ils"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "skillFormatter.formatDocument",
+        "title": "Skillfmt: Format Document"
+      },
+      {
+        "command": "skillFormatter.formatSelection",
+        "title": "Skillfmt: Format Selection"
+      }
+    ],
+    "configurationDefaults": {
+      "[skill]": {
+        "editor.defaultFormatter": "skillfmt.skill-formatter"
+      }
+    },
+    "configuration": {
+      "title": "SKILL Formatter",
+      "properties": {
+        "skillFormatter.executablePath": {
+          "type": "string",
+          "default": "skillfmt",
+          "description": "Path to the skillfmt executable."
+        },
+        "skillFormatter.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to skillfmt.toml."
+        },
+        "skillFormatter.extraArgs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Extra arguments passed to skillfmt."
+        },
+        "skillFormatter.timeoutMs": {
+          "type": "number",
+          "default": 10000,
+          "description": "Formatter timeout in milliseconds."
+        },
+        "skillFormatter.enableRangeFormatting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Format Selection."
+        },
+        "skillFormatter.languages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["skill", "skillpp"],
+          "description": "Language ids that use this formatter."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p .",
+    "test": "npm run compile && node --test out/src/test/format.test.js",
+    "package": "vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.70.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.6.0"
+  }
+}
