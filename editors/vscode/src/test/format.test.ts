@@ -14,7 +14,7 @@ import {
 test("buildArgs includes config, stdin path and range", () => {
   assert.deepEqual(
     buildArgs({
-      executable: "skillfmt",
+      executable: "skill-formatter",
       configPath: "cfg.toml",
       extraArgs: ["--skip", "comments"],
       stdinPath: "a.il",
@@ -59,8 +59,8 @@ test("changedSpan detects edits outside the selected lines", () => {
   assert.equal(containsSpan({ start: 0, end: 9 }, outside), false);
 });
 
-test("parseVersion reads skillfmt --version output", () => {
-  assert.equal(parseVersion("skillfmt 0.2.0\n"), "0.2.0");
+test("parseVersion reads skill-formatter --version output", () => {
+  assert.equal(parseVersion("skill-formatter 0.2.0\n"), "0.2.0");
   assert.equal(parseVersion("no version here"), null);
 });
 

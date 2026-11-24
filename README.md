@@ -12,7 +12,13 @@
 git clone <repo>
 cd skill-formatter
 uv tool install .
-uv tool list          # 应显示 skill-formatter，命令为 skillfmt
+uv tool list          # 应显示 skill-formatter
+```
+
+发布到 PyPI 后也可以直接临时运行：
+
+```sh
+uvx skill-formatter --version
 ```
 
 开发环境：
@@ -24,14 +30,14 @@ uv sync --dev
 ## 命令行
 
 ```sh
-skillfmt format file.il                 # 输出到 stdout
-skillfmt format -w file.il              # 原地写入
-skillfmt check file.il                  # 只检查，有差异 exit 1
-skillfmt diff file.il                   # 输出 unified diff
-cat file.il | skillfmt format           # stdin 过滤模式
-skillfmt format --lines 10:20 file.il   # 只格式化第 10-20 行
-skillfmt check src/                     # 递归检查目录下的 *.il / *.ils
-skillfmt config template > skillfmt.toml  # 打印配置模板
+skill-formatter format file.il                 # 输出到 stdout
+skill-formatter format -w file.il              # 原地写入
+skill-formatter check file.il                  # 只检查，有差异 exit 1
+skill-formatter diff file.il                   # 输出 unified diff
+cat file.il | skill-formatter format           # stdin 过滤模式
+skill-formatter format --lines 10:20 file.il   # 只格式化第 10-20 行
+skill-formatter check src/                     # 递归检查目录下的 *.il / *.ils
+skill-formatter config template > skill-formatter.toml  # 打印配置模板
 ```
 
 子命令：
@@ -60,20 +66,20 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 
 退出码：`0` 成功；`1` check/diff 有差异；`2` 用法、IO、解析/校验失败或 strict 警告。
 
-`stdin` 格式化模式出错时会把输入原字节写回 stdout 并返回 2，保证 `:%!skillfmt format` 与编辑器不会丢文本。
+`stdin` 格式化模式出错时会把输入原字节写回 stdout 并返回 2，保证 `:%!skill-formatter format` 与编辑器不会丢文本。
 
 `stdin` 读取到 EOF 为止；POSIX 终端用 `Ctrl+D` 结束输入，Windows 控制台通常用 `Ctrl+Z`，或改用管道/重定向输入。
 
 `Ctrl+C` 视为中止：返回 130，不写文件，也不输出部分格式化结果。
 
-帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定。它们可写在子命令前后，例如 `skillfmt --zh check` 与 `skillfmt check --zh` 等价。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
+帮助信息支持中文/英文：按 `SKILL_FORMATTER_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定。它们可写在子命令前后，例如 `skill-formatter --zh check` 与 `skill-formatter check --zh` 等价。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
 
 帮助只介绍工具用途、子命令与选项；退出码、语言检测和实现取舍等细节留在本文档。
 
 ## 版本与兼容性
 
-- CLI 用 `skillfmt --version` 输出 `skillfmt 0.1.0`。
-- VS Code 扩展与 Vim 插件在格式化前运行 `skillfmt --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化并提示升级。
+- CLI 用 `skill-formatter --version` 输出 `skill-formatter 0.1.0`。
+- VS Code 扩展与 Vim 插件在格式化前运行 `skill-formatter --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化并提示升级。
 - 升级 CLI：`uv tool install --force .`。VS Code 需重载窗口；Vim 执行 `:SkillfmtRefresh`。
 - 发布前版本保持 `0.1.0`。开始发布后，工具行为或特性有变化时同步提升版本号，并同步更新编辑器插件的最低要求。
 
@@ -81,9 +87,9 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 
 | 子命令 | 说明 |
 | --- | --- |
-| `template` | 打印带注释的 `skillfmt.toml` 模板 |
+| `template` | 打印带注释的 `skill-formatter.toml` 模板 |
 | `get KEY` | 打印 `KEY` 的生效值；没有配置文件时取默认值 |
-| `set KEY VALUE` | 写入发现到的配置文件；没有时在当前目录创建 `skillfmt.toml` |
+| `set KEY VALUE` | 写入发现到的配置文件；没有时在当前目录创建 `skill-formatter.toml` |
 | `trace` | 打印当前生效的配置文件；没有时输出为空 |
 
 ## 格式分类
@@ -109,7 +115,7 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 
 ## 配置
 
-从当前目录（或 `--stdin-path` 所在目录）向上查找 `skillfmt.toml`，也可用 `--config` 指定：
+从当前目录（或 `--stdin-path` 所在目录）向上查找 `skill-formatter.toml`，也可用 `--config` 指定：
 
 ```toml
 [format]
@@ -141,13 +147,13 @@ hanging = ["let", "letseq", "letrec", "prog", "case", "if", "when", "unless", "w
 配置命令：
 
 ```sh
-skillfmt config template > skillfmt.toml          # 英文注释
-skillfmt --zh config template > skillfmt.toml     # 中文注释
-skillfmt config get format.width                  # 读取生效值
-skillfmt config set format.width 100              # 写入当前配置
-skillfmt config set categories.wrapping false
-skillfmt config set format.base_indent unset      # 删除该键，恢复默认行为
-skillfmt config trace                             # 查看生效文件
+skill-formatter config template > skill-formatter.toml          # 英文注释
+skill-formatter --zh config template > skill-formatter.toml     # 中文注释
+skill-formatter config get format.width                  # 读取生效值
+skill-formatter config set format.width 100              # 写入当前配置
+skill-formatter config set categories.wrapping false
+skill-formatter config set format.base_indent unset      # 删除该键，恢复默认行为
+skill-formatter config trace                             # 查看生效文件
 ```
 
 键名使用点号形式：`format.width`、`format.indent`、`format.base_indent`、`categories.<名称>`、`safety.unknown`、`rules.inScheme`、`rules.case`、`rules.hanging`。
@@ -185,9 +191,9 @@ Format Selection 只格式化选中的完整行，不会扩展到外层 form；�
 
 | 设置 | 作用 |
 | --- | --- |
-| `skillFormatter.executablePath` | `skillfmt` 可执行文件路径 |
-| `skillFormatter.configPath` | 指定 `skillfmt.toml`；留空则自动查找 |
-| `skillFormatter.extraArgs` | 追加给 `skillfmt format` 的参数 |
+| `skillFormatter.executablePath` | `skill-formatter` 可执行文件路径 |
+| `skillFormatter.configPath` | 指定 `skill-formatter.toml`；留空则自动查找 |
+| `skillFormatter.extraArgs` | 追加给 `skill-formatter format` 的参数 |
 | `skillFormatter.timeoutMs` | 单次格式化超时（毫秒） |
 | `skillFormatter.enableRangeFormatting` | 是否启用 Format Selection |
 
@@ -199,9 +205,9 @@ npm run package
 code --install-extension skill-formatter-0.1.0.vsix
 ```
 
-扩展通过 PATH 上的 `skillfmt` 工作；可在设置中改 `skillFormatter.executablePath`。
+扩展通过 PATH 上的 `skill-formatter` 工作；可在设置中改 `skillFormatter.executablePath`。
 
-扩展只负责调用 CLI；升级插件或本仓库后，务必同步更新已安装的 CLI，否则 VS Code 仍会调用旧版 `skillfmt`：
+扩展只负责调用 CLI；升级插件或本仓库后，务必同步更新已安装的 CLI，否则 VS Code 仍会调用旧版 `skill-formatter`：
 
 ```sh
 cd skill-formatter
@@ -219,7 +225,7 @@ uv tool install --force .
 ```sh
 cd skill-formatter
 uv tool install .
-skillfmt --version
+skill-formatter --version
 ```
 
 Vim 7.4 手动安装（Unix 示例；Windows 把 `~/.vim` 换成 `~/vimfiles`）：
@@ -234,21 +240,21 @@ vim -Nu NONE -c 'helptags ~/.vim/doc' -c 'q'
 
 ```vim
 :set filetype?              " skill
-:echo executable('skillfmt') " 1
+:echo executable('skill-formatter') " 1
 :command Skillfmt           " 存在
 :help skillfmt
 ```
 
-`skillfmt` 不在 PATH 时，在 `.vimrc` 中设置 `g:skillfmt_executable`；追加参数用 `g:skillfmt_args`。修改后执行 `:SkillfmtRefresh`。
+`skill-formatter` 不在 PATH 时，在 `.vimrc` 中设置 `g:skillfmt_executable`；追加参数用 `g:skillfmt_args`。修改后执行 `:SkillfmtRefresh`。
 
 ```vim
 :Skillfmt              " 格式化整个缓冲区
 :'<,'>SkillfmtRange    " 只格式化选区行（片段模式）
-:%!skillfmt format     " 原生过滤：整文件
-:'<,'>!skillfmt format " 原生过滤：选区（片段模式）
+:%!skill-formatter format     " 原生过滤：整文件
+:'<,'>!skill-formatter format " 原生过滤：选区（片段模式）
 ```
 
-`ftplugin` 在 `skillfmt` 可执行时设置 `formatprg`，可用 `gq`。插件不使用 Vim 8+ 的 `systemlist`、job、timer、JSON 等特性。
+`ftplugin` 在 `skill-formatter` 可执行时设置 `formatprg`，可用 `gq`。插件不使用 Vim 8+ 的 `systemlist`、job、timer、JSON 等特性。
 
 ## 安全模型
 

@@ -1,4 +1,4 @@
-" skillfmt.vim - format SKILL buffers with the skillfmt CLI.
+" skillfmt.vim - format SKILL buffers with the skill-formatter CLI.
 " Requires Vim 7.4 or newer.
 
 if v:version < 704

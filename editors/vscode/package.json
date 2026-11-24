@@ -1,7 +1,7 @@
 {
   "name": "skill-formatter",
   "displayName": "SKILL Formatter",
-  "description": "Format Cadence SKILL source with skillfmt.",
+  "description": "Format Cadence SKILL source with skill-formatter.",
   "version": "0.1.0",
   "publisher": "YEUNGCHIE",
   "author": "YEUNGCHIE",
@@ -35,19 +35,19 @@
       "properties": {
         "skillFormatter.executablePath": {
           "type": "string",
-          "default": "skillfmt",
-          "description": "Path to the skillfmt executable."
+          "default": "skill-formatter",
+          "description": "Path to the skill-formatter executable."
         },
         "skillFormatter.configPath": {
           "type": "string",
           "default": "",
-          "description": "Optional path to skillfmt.toml."
+          "description": "Optional path to skill-formatter.toml."
         },
         "skillFormatter.extraArgs": {
           "type": "array",
           "items": { "type": "string" },
           "default": [],
-          "description": "Extra arguments passed to skillfmt."
+          "description": "Extra arguments passed to skill-formatter."
         },
         "skillFormatter.timeoutMs": {
           "type": "number",

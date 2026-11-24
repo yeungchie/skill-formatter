@@ -9,7 +9,7 @@ authors = [{ name = "YEUNGCHIE" }]
 dependencies = ["rich>=13.9", "rich-argparse>=1.7"]
 
 [project.scripts]
-skillfmt = "skill_formatter.cli:main"
+skill-formatter = "skill_formatter.cli:main"
 
 [dependency-groups]
 dev = [

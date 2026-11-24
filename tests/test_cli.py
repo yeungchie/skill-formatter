@@ -40,7 +40,7 @@ def test_stdin_filter() -> None:
 def test_version_output() -> None:
     result = run_cli(["--version"])
     assert result.returncode == 0
-    assert result.stdout == f"skillfmt {__version__}\n"
+    assert result.stdout == f"skill-formatter {__version__}\n"
 
 
 def test_best_effort_uses_conservative_layout() -> None:
@@ -50,7 +50,9 @@ def test_best_effort_uses_conservative_layout() -> None:
 
 
 def test_skipping_required_category_disables_wrapping() -> None:
-    result = run_cli(["format", "--skip", "spacing"], "a=1\n", env_extra={"SKILLFMT_LANG": "en"})
+    result = run_cli(
+        ["format", "--skip", "spacing"], "a=1\n", env_extra={"SKILL_FORMATTER_LANG": "en"}
+    )
     assert result.returncode == 0
     assert result.stdout == "a=1\n"
     assert "wrapping disabled" in result.stderr
@@ -82,16 +84,16 @@ def test_stdin_check() -> None:
     result = run_cli(
         ["check"],
         'procedure(foo(a "t")\na = 1\n)\n',
-        env_extra={"SKILLFMT_LANG": "en"},
+        env_extra={"SKILL_FORMATTER_LANG": "en"},
     )
     assert result.returncode == 1
     assert "would reformat" in result.stdout
 
 
 def test_requires_a_command() -> None:
-    result = run_cli([], env_extra={"SKILLFMT_LANG": "en"})
+    result = run_cli([], env_extra={"SKILL_FORMATTER_LANG": "en"})
     assert result.returncode == 2
-    assert "Usage: skillfmt" in result.stderr
+    assert "Usage: skill-formatter" in result.stderr
 
 
 def test_error_echoes_original_stdin() -> None:
@@ -130,9 +132,9 @@ def test_format_rejects_multiple_stdout_inputs(tmp_path: Path) -> None:
 
 
 def test_help_is_stable_without_color() -> None:
-    result = run_cli(["format", "-h"], env_extra={"SKILLFMT_LANG": "en"})
+    result = run_cli(["format", "-h"], env_extra={"SKILL_FORMATTER_LANG": "en"})
     assert result.returncode == 0
-    assert "Usage: skillfmt format" in result.stdout
+    assert "Usage: skill-formatter format" in result.stdout
     assert "--line-width" in result.stdout
     assert "--best-effort" in result.stdout
     assert "Reserved" not in result.stdout
@@ -171,7 +173,7 @@ def test_base_indent_option() -> None:
 
 
 def test_stdin_path_locates_config(tmp_path: Path) -> None:
-    (tmp_path / "skillfmt.toml").write_text("[format]\nindent = 2\n", encoding="utf-8")
+    (tmp_path / "skill-formatter.toml").write_text("[format]\nindent = 2\n", encoding="utf-8")
     source = 'procedure(foo(a "t")\n1\n)\n'
     result = run_cli(
         ["format", "--stdin-path", str(tmp_path / "x.il")],
@@ -203,7 +205,7 @@ def test_quiet_suppresses_warnings() -> None:
 
 
 def test_help_language_override_chinese() -> None:
-    result = run_cli(["-h"], env_extra={"SKILLFMT_LANG": "zh"})
+    result = run_cli(["-h"], env_extra={"SKILL_FORMATTER_LANG": "zh"})
     assert result.returncode == 0
     assert "用法:" in result.stdout
     assert "保守格式化" in result.stdout
@@ -212,7 +214,7 @@ def test_help_language_override_chinese() -> None:
 
 
 def test_help_language_override_english() -> None:
-    result = run_cli(["-h"], env_extra={"SKILLFMT_LANG": "en"})
+    result = run_cli(["-h"], env_extra={"SKILL_FORMATTER_LANG": "en"})
     assert result.returncode == 0
     assert "Usage:" in result.stdout
     assert "Options" in result.stdout
@@ -223,7 +225,7 @@ def test_help_language_auto_from_locale() -> None:
     result = run_cli(
         ["-h"],
         env_extra={
-            "SKILLFMT_LANG": "",
+            "SKILL_FORMATTER_LANG": "",
             "LC_ALL": "zh_CN.UTF-8",
             "LANG": "zh_CN.UTF-8",
         },
@@ -236,7 +238,7 @@ def test_help_language_auto_english_locale() -> None:
     result = run_cli(
         ["-h"],
         env_extra={
-            "SKILLFMT_LANG": "",
+            "SKILL_FORMATTER_LANG": "",
             "LC_ALL": "",
             "LC_MESSAGES": "",
             "LANGUAGE": "",
@@ -248,11 +250,11 @@ def test_help_language_auto_english_locale() -> None:
 
 
 def test_forced_language_flags() -> None:
-    zh = run_cli(["--zh", "-h"], env_extra={"SKILLFMT_LANG": "en"})
+    zh = run_cli(["--zh", "-h"], env_extra={"SKILL_FORMATTER_LANG": "en"})
     assert zh.returncode == 0
     assert "用法:" in zh.stdout
     assert "强制中文帮助" in zh.stdout
-    en = run_cli(["--en", "-h"], env_extra={"SKILLFMT_LANG": "zh"})
+    en = run_cli(["--en", "-h"], env_extra={"SKILL_FORMATTER_LANG": "zh"})
     assert en.returncode == 0
     assert "Usage:" in en.stdout
     assert "Force English help" in en.stdout
@@ -271,7 +273,7 @@ def test_forced_language_flags_are_mutually_exclusive_across_command() -> None:
 def test_language_flag_before_command_localizes_subcommand_help() -> None:
     result = run_cli(["--zh", "format", "-h"])
     assert result.returncode == 0
-    assert "用法: skillfmt format" in result.stdout
+    assert "用法: skill-formatter format" in result.stdout
 
 
 def test_forced_language_affects_check_message() -> None:
@@ -311,7 +313,7 @@ def test_config_template_is_loadable(tmp_path: Path) -> None:
     result = run_cli(["--en", "config", "template"])
     assert result.returncode == 0
     assert result.stderr == ""
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     target.write_text(result.stdout, encoding="utf-8")
     options = load_config(target)
     assert options.width == 150
@@ -385,7 +387,7 @@ def test_config_trace_is_blank_without_file(tmp_path: Path) -> None:
     assert defaults.returncode == 0
     assert defaults.stdout == ""
     assert defaults.stderr == ""
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     target.write_text("[format]\nwidth = 120\n", encoding="utf-8")
     traced = run_cli(["--en", "config", "trace"], cwd=tmp_path)
     assert traced.returncode == 0
@@ -397,7 +399,7 @@ def test_config_trace_is_blank_without_file(tmp_path: Path) -> None:
 def test_config_set_creates_and_updates_file(tmp_path: Path) -> None:
     created = run_cli(["--en", "config", "set", "format.width", "100"], cwd=tmp_path)
     assert created.returncode == 0
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     assert target.is_file()
     assert "updated:" in created.stdout
     assert load_config(target).width == 100
@@ -409,7 +411,7 @@ def test_config_set_creates_and_updates_file(tmp_path: Path) -> None:
 
 
 def test_config_set_preserves_comments_and_other_keys(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     target.write_text(
         "# keep this comment\n[format]\nwidth = 150\nindent = 2\n",
         encoding="utf-8",
@@ -425,7 +427,7 @@ def test_config_set_preserves_comments_and_other_keys(tmp_path: Path) -> None:
 
 
 def test_config_set_boolean_and_list_values(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     target.write_text("", encoding="utf-8")
     wrapping = run_cli(["--en", "config", "set", "categories.wrapping", "false"], cwd=tmp_path)
     assert wrapping.returncode == 0
@@ -440,7 +442,7 @@ def test_config_set_boolean_and_list_values(tmp_path: Path) -> None:
 
 
 def test_config_set_unset_restores_default(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     target.write_text("[format]\nwidth = 90\n", encoding="utf-8")
     result = run_cli(["--en", "config", "set", "format.width", "unset"], cwd=tmp_path)
     assert result.returncode == 0
@@ -449,7 +451,7 @@ def test_config_set_unset_restores_default(tmp_path: Path) -> None:
 
 
 def test_config_set_invalid_value_does_not_write(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     original = "[format]\nwidth = 150\n"
     target.write_text(original, encoding="utf-8")
     result = run_cli(["--en", "config", "set", "format.width", "10"], cwd=tmp_path)
@@ -459,7 +461,7 @@ def test_config_set_invalid_value_does_not_write(tmp_path: Path) -> None:
 
 
 def test_config_set_rejects_unknown_key(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     original = "[format]\nwidth = 150\n"
     target.write_text(original, encoding="utf-8")
     result = run_cli(["--en", "config", "set", "format.nope", "1"], cwd=tmp_path)
@@ -469,7 +471,7 @@ def test_config_set_rejects_unknown_key(tmp_path: Path) -> None:
 
 
 def test_config_set_does_not_overwrite_invalid_file(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
+    target = tmp_path / "skill-formatter.toml"
     original = "not = [\n"
     target.write_text(original, encoding="utf-8")
     result = run_cli(["--en", "config", "set", "format.width", "90"], cwd=tmp_path)

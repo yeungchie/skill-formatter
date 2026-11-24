@@ -50,7 +50,7 @@ def test_hanging_controls_head_line() -> None:
 
 
 def test_config_hanging_changes_layout(tmp_path: Path) -> None:
-    config = tmp_path / "skillfmt.toml"
+    config = tmp_path / "skill-formatter.toml"
     config.write_text("[rules]\nhanging = []\n", encoding="utf-8")
     result = format_source("let((len i)\nlen = 1\n)", load_config(config)).text
     assert result == "let(\n    (len i)\n    len = 1\n)\n"

@@ -1,6 +1,6 @@
-*skillfmt.txt*  Format SKILL source with skillfmt
+*skillfmt.txt*  Format SKILL source with skill-formatter
 
-Requires Vim 7.4 or newer and the |skillfmt| command on $PATH.
+Requires Vim 7.4 or newer and the `skill-formatter` command on $PATH.
 
 INSTALL
 
@@ -11,7 +11,7 @@ Windows ~/vimfiles), then run:
     :helptags ~/.vim/doc
 
 Vim 8+ may use a package directory such as
-~/.vim/pack/plugins/start/skillfmt/.  Set |g:skillfmt_executable| when
+~/.vim/pack/plugins/start/skill-formatter/.  Set |g:skillfmt_executable| when
 the executable is not on $PATH.
 
 COMMANDS
@@ -21,7 +21,7 @@ COMMANDS
 
                                                         *:SkillfmtRange*
 :[range]SkillfmtRange   Format the selected lines as a fragment.
-                        The whole buffer is sent to skillfmt with --lines, so
+The whole buffer is sent to skill-formatter with --lines, so
                         only the selected lines are replaced and text outside
                         the range is preserved byte for byte.  The selected
                         lines must form a complete fragment; otherwise they
@@ -30,26 +30,26 @@ COMMANDS
                                                         *:SkillfmtRefresh*
 :SkillfmtRefresh        Rebuild 'formatprg' after changing
                         |g:skillfmt_executable| or |g:skillfmt_args|, or after
-                        upgrading skillfmt.
+                        upgrading skill-formatter.
 
                                                         *:SkillfmtVersion*
-:SkillfmtVersion        Show the detected skillfmt version and the minimum
+:SkillfmtVersion        Show the detected skill-formatter version and the minimum
                         required version.
 
 FILTERS
 
-  :%!skillfmt format    Format the whole buffer through the CLI filter.
-  :'<,'>!skillfmt format
+  :%!skill-formatter format    Format the whole buffer through the CLI filter.
+  :'<,'>!skill-formatter format
                         Format a fragment; the formatter auto-detects its base
                         indentation and echoes the input unchanged on error.
 
 OPTIONS
 
-  g:skillfmt_executable  Path to the executable. Default: "skillfmt".
+  g:skillfmt_executable  Path to the executable. Default: "skill-formatter".
   g:skillfmt_args        Extra shell arguments appended to the command,
                         including the 'formatprg' used by |gq|.
 
-The plugin runs `skillfmt --version` before formatting and requires
+The plugin runs `skill-formatter --version` before formatting and requires
 `>= 0.1.0`; older or unparseable versions are refused.
 
 Vim 7.4 NOTES

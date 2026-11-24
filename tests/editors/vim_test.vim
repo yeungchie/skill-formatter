@@ -3,7 +3,7 @@
 
 let s:root = fnamemodify(expand('<sfile>:p'), ':h:h:h')
 let g:skillfmt_executable = ''
-for s:candidate in [s:root . '/.venv/Scripts/skillfmt.exe', s:root . '/.venv/bin/skillfmt']
+for s:candidate in [s:root . '/.venv/Scripts/skill-formatter.exe', s:root . '/.venv/bin/skill-formatter']
   if executable(s:candidate)
     let g:skillfmt_executable = s:candidate
     break

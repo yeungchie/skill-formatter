@@ -12,7 +12,7 @@ let s:version_ok = -1
 let s:version_exe = ''
 
 function! s:Executable() abort
-  return get(g:, 'skillfmt_executable', 'skillfmt')
+  return get(g:, 'skillfmt_executable', 'skill-formatter')
 endfunction
 
 function! s:ShowMessage(message) abort
@@ -61,13 +61,13 @@ function! skillfmt#VersionOk() abort
   let l:found = s:ReadVersion()
   if empty(l:found)
     let s:version_ok = 0
-    call s:ShowMessage('skillfmt: cannot determine version; install or update the executable')
+    call s:ShowMessage('skill-formatter: cannot determine version; install or update the executable')
     return 0
   endif
   if !s:VersionAtLeast(l:found, s:min_version)
     let s:version_ok = 0
     call s:ShowMessage(
-          \ 'skillfmt ' . l:found . ' is too old; requires >= ' . s:min_version
+          \ 'skill-formatter ' . l:found . ' is too old; requires >= ' . s:min_version
           \ . ' (upgrade, then :SkillfmtRefresh)')
     return 0
   endif
@@ -78,9 +78,9 @@ endfunction
 function! skillfmt#Version() abort
   let l:found = s:ReadVersion()
   if empty(l:found)
-    echomsg 'skillfmt: version unknown'
+    echomsg 'skill-formatter: version unknown'
   else
-    echomsg 'skillfmt ' . l:found . ' (required >= ' . s:min_version . ')'
+    echomsg 'skill-formatter ' . l:found . ' (required >= ' . s:min_version . ')'
   endif
 endfunction
 
@@ -107,7 +107,7 @@ function! skillfmt#Setup() abort
 endfunction
 
 function! s:ShowError(file) abort
-  let l:lines = filereadable(a:file) ? readfile(a:file) : ['skillfmt failed']
+  let l:lines = filereadable(a:file) ? readfile(a:file) : ['skill-formatter failed']
   echohl ErrorMsg
   for l:line in l:lines
     echomsg l:line
@@ -134,7 +134,7 @@ function! skillfmt#Format(all, first, last) abort
   let l:exe = s:Executable()
   if !executable(l:exe)
     echohl ErrorMsg
-    echomsg 'skillfmt: executable not found: ' . l:exe
+    echomsg 'skill-formatter: executable not found: ' . l:exe
     echohl None
     return
   endif
@@ -169,7 +169,7 @@ function! skillfmt#Format(all, first, last) abort
     endif
     if !filereadable(l:out_file)
       echohl ErrorMsg
-      echomsg 'skillfmt: no output produced'
+      echomsg 'skill-formatter: no output produced'
       echohl None
       return
     endif

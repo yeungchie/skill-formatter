@@ -1,6 +1,6 @@
 # SKILL Formatter for VS Code
 
-Thin VS Code client for `skillfmt`. It declares the `skill` language and
+Thin VS Code client for `skill-formatter`. It declares the `skill` language and
 registers a document formatter and a range formatter. It does not associate
 `.il`/`.ils` automatically and does not set a default formatter.
 
@@ -29,14 +29,14 @@ To make `.il`/`.ils` files open as `skill`, add your own association:
 }
 ```
 
-The `skillfmt` executable must be on `PATH`, or set
+The `skill-formatter` executable must be on `PATH`, or set
 `skillFormatter.executablePath`. Range formatting is implemented by sending
-the whole document plus `--lines a:b` to `skillfmt format`. Only the selected
+the whole document plus `--lines a:b` to `skill-formatter format`. Only the selected
 lines are replaced; the selection is formatted as a fragment using its own
 base indentation. Incomplete fragments are left unchanged with a diagnostic,
 and text outside the selected lines is preserved byte for byte.
 
-Before formatting, the extension runs `skillfmt --version` and requires at
+Before formatting, the extension runs `skill-formatter --version` and requires at
 least `0.1.0`. If the version is older or cannot be parsed, the edit is
 refused with an upgrade message.
 

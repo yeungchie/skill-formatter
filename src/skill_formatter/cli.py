@@ -1,4 +1,4 @@
-"""Command line interface for skillfmt."""
+"""Command line interface for skill-formatter."""
 
 from __future__ import annotations
 
@@ -141,7 +141,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     common.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
 
     parser = LocalizedParser(
-        prog="skillfmt",
+        prog="skill-formatter",
         description=strings["description"],
         formatter_class=LocalizedFormatter,
         add_help=False,
@@ -149,7 +149,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"skillfmt {__version__}",
+        version=f"skill-formatter {__version__}",
         help=strings["version"],
     )
     add_help_option(parser)
@@ -310,7 +310,7 @@ def _format_text(text: str, args: argparse.Namespace, options: Options) -> Forma
 
 def _write_atomic(path: Path, text: str) -> None:
     directory = path.parent
-    fd, tmp_name = tempfile.mkstemp(prefix=".skillfmt-", dir=directory)
+    fd, tmp_name = tempfile.mkstemp(prefix=".skill-formatter-", dir=directory)
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
@@ -391,7 +391,7 @@ def _active_config_path(raw: Path | None, cwd: Path, create: bool) -> Path | Non
     found = find_config(cwd)
     if found is not None:
         return found
-    return cwd / "skillfmt.toml" if create else None
+    return cwd / "skill-formatter.toml" if create else None
 
 
 def _print_config_template(lang: str) -> None:
@@ -437,7 +437,7 @@ def _run_config(args: argparse.Namespace, lang: str) -> int:
             print(tr(lang, "config_updated").format(path=path.resolve()))
             return 0
     except (ConfigError, OSError) as exc:
-        print(f"skillfmt: {exc}", file=sys.stderr)
+        print(f"skill-formatter: {exc}", file=sys.stderr)
         return 2
     return 2
 
@@ -497,7 +497,7 @@ def _main(arguments: list[str]) -> int:
     try:
         options = load_config(args.config, start)
     except ConfigError as exc:
-        print(f"skillfmt: {exc}", file=sys.stderr)
+        print(f"skill-formatter: {exc}", file=sys.stderr)
         return 2
     if args.verbose:
         if options.config_path:
@@ -589,7 +589,7 @@ def main(argv: list[str] | None = None) -> int:
         return _main(arguments)
     except KeyboardInterrupt:
         lang = _prescan_language(arguments) or detect_language()
-        print(f"skillfmt: {tr(lang, 'interrupted')}", file=sys.stderr)
+        print(f"skill-formatter: {tr(lang, 'interrupted')}", file=sys.stderr)
         return 130
 
 

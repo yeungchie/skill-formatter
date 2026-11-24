@@ -34,7 +34,7 @@ function cliVersion(options: FormatOptions): Promise<string | null> {
 function configFor(document: vscode.TextDocument): FormatOptions {
   const config = vscode.workspace.getConfiguration("skillFormatter", document.uri);
   return {
-    executable: config.get<string>("executablePath", "skillfmt"),
+    executable: config.get<string>("executablePath", "skill-formatter"),
     configPath: config.get<string>("configPath", "") || undefined,
     extraArgs: config.get<string[]>("extraArgs", []),
     stdinPath: document.uri.scheme === "file" ? document.uri.fsPath : undefined,
@@ -79,14 +79,14 @@ async function formatDocument(
   if (version === null) {
     output.appendLine(`cannot determine version: ${options.executable} --version`);
     vscode.window.showErrorMessage(
-      "skillfmt: cannot determine CLI version; install or update the skillfmt executable",
+      "skill-formatter: cannot determine CLI version; install or update the executable",
     );
     return [];
   }
   if (!versionAtLeast(version, MIN_CLI_VERSION)) {
-    output.appendLine(`skillfmt ${version} is older than required ${MIN_CLI_VERSION}`);
+    output.appendLine(`skill-formatter ${version} is older than required ${MIN_CLI_VERSION}`);
     vscode.window.showErrorMessage(
-      `skillfmt ${version} is too old; requires >= ${MIN_CLI_VERSION}. Run: uv tool install --force <skill-formatter-repo>`,
+      `skill-formatter ${version} is too old; requires >= ${MIN_CLI_VERSION}. Run: uv tool install --force <skill-formatter-repo>`,
     );
     return [];
   }
@@ -100,7 +100,7 @@ async function formatDocument(
       output.appendLine(result.stderr.trimEnd());
     }
     if (result.code !== 0) {
-      vscode.window.showErrorMessage("skillfmt: formatting failed; document left unchanged");
+      vscode.window.showErrorMessage("skill-formatter: formatting failed; document left unchanged");
       return [];
     }
     if (range) {
@@ -109,10 +109,10 @@ async function formatDocument(
       if (changed && !containsSpan(bounds, changed)) {
         output.appendLine(`command: ${options.executable} ${buildArgs(options).join(" ")}`);
         output.appendLine(
-          `skillfmt changed text outside lines ${options.lines}; edit refused`,
+          `skill-formatter changed text outside lines ${options.lines}; edit refused`,
         );
         vscode.window.showErrorMessage(
-          "skillfmt: formatter changed text outside the selection; update the skillfmt executable and retry",
+          "skill-formatter: formatter changed text outside the selection; update the executable and retry",
         );
         return [];
       }
@@ -130,7 +130,7 @@ async function formatDocument(
   } catch (error) {
     output.appendLine(String(error));
     vscode.window.showErrorMessage(
-      "skillfmt: cannot run executable; install it with `uv tool install .` from the skill-formatter repository",
+      "skill-formatter: cannot run executable; install it with `uv tool install .` from the skill-formatter repository",
     );
     return [];
   }
@@ -198,7 +198,7 @@ export function activate(context: vscode.ExtensionContext): void {
         .get<boolean>("enableRangeFormatting", true);
       if (!enabled) {
         vscode.window.showInformationMessage(
-          "skillfmt: Format Selection is disabled by skillFormatter.enableRangeFormatting",
+          "skill-formatter: Format Selection is disabled by skillFormatter.enableRangeFormatting",
         );
         return;
       }

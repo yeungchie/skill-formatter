@@ -99,7 +99,7 @@ export function runCommand(
     child.on("close", (code) => finish(code ?? 2));
     timer = setTimeout(() => {
       child.kill();
-      reject(new Error(`skillfmt timed out after ${timeoutMs} ms`));
+      reject(new Error(`skill-formatter timed out after ${timeoutMs} ms`));
     }, timeoutMs);
     child.stdin.end(text);
   });
