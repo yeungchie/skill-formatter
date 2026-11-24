@@ -116,13 +116,10 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         help=strings["best_effort"],
     )
     parser.add_argument(
-        "--init-config",
-        nargs="?",
-        const="skillfmt.toml",
-        metavar="PATH",
-        help=strings["init_config"],
+        "--config-template",
+        action="store_true",
+        help=strings["config_template"],
     )
-    parser.add_argument("--force", action="store_true", help=strings["force"])
     parser.add_argument("-q", "--quiet", action="store_true", help=strings["quiet"])
     parser.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
     parser.add_argument("-h", "--help", action="help", help=strings["help"])
@@ -211,24 +208,6 @@ def _write_atomic(path: Path, text: str) -> None:
         raise
 
 
-def _init_config(target: str, force: bool, lang: str) -> int:
-    content = render_template(lang)
-    if target == "-":
-        sys.stdout.write(content)
-        return 0
-    path = Path(target)
-    if path.exists() and not force:
-        print(f"skillfmt: {tr(lang, 'config_exists').format(path=path)}", file=sys.stderr)
-        return 2
-    try:
-        _write_atomic(path, content)
-    except OSError as exc:
-        print(f"skillfmt: {exc}", file=sys.stderr)
-        return 2
-    print(tr(lang, "config_written").format(path=path))
-    return 0
-
-
 def _expand_inputs(raw_paths: list[str], lang: str) -> tuple[list[Path], bool]:
     paths: list[Path] = []
     failed = False
@@ -307,7 +286,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.write and (args.check or args.diff):
         parser.error(tr(lang, "err_write_conflict"))
 
-    if args.init_config is not None:
+    if args.config_template:
         formatting = (
             args.paths
             or args.write
@@ -324,10 +303,9 @@ def main(argv: list[str] | None = None) -> int:
             or args.best_effort
         )
         if formatting:
-            parser.error(tr(lang, "err_init_config_conflict"))
-        return _init_config(args.init_config, args.force, lang)
-    if args.force:
-        parser.error(tr(lang, "err_force_without_init"))
+            parser.error(tr(lang, "err_config_template_conflict"))
+        sys.stdout.write(render_template(lang))
+        return 0
 
     stdin_mode = not args.paths or args.paths == ["-"]
     if "-" in args.paths and len(args.paths) > 1:

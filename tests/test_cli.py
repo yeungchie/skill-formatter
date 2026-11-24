@@ -152,7 +152,7 @@ def test_help_documents_exit_status_and_language_scope() -> None:
     assert "Exit status:" in result.stdout
     assert "Language:" in result.stdout
     assert "only help and diagnostics" in result.stdout
-    assert "--init-config" in result.stdout
+    assert "--config-template" in result.stdout
     assert "Output channels:" not in result.stdout
 
 
@@ -163,16 +163,16 @@ def test_help_documents_exit_status_and_language_scope_in_chinese() -> None:
     assert "退出码:" in result.stdout
     assert "语言:" in result.stdout
     assert "仅影响帮助与诊断" in result.stdout
-    assert "--init-config" in result.stdout
+    assert "--config-template" in result.stdout
     assert "输出通道:" not in result.stdout
 
 
-def test_init_config_writes_loadable_template(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
-    result = run_cli(["--en", "--init-config", str(target)])
+def test_config_template_is_loadable(tmp_path: Path) -> None:
+    result = run_cli(["--en", "--config-template"])
     assert result.returncode == 0
-    assert str(target) in result.stdout
-    assert target.is_file()
+    assert result.stderr == ""
+    target = tmp_path / "skillfmt.toml"
+    target.write_text(result.stdout, encoding="utf-8")
     options = load_config(target)
     assert options.width == 150
     assert options.indent == 4
@@ -182,13 +182,13 @@ def test_init_config_writes_loadable_template(tmp_path: Path) -> None:
     assert options.config_path == str(target)
 
 
-def test_init_config_uses_selected_language(tmp_path: Path) -> None:
-    chinese = tmp_path / "zh.toml"
-    english = tmp_path / "en.toml"
-    assert run_cli(["--zh", "--init-config", str(chinese)]).returncode == 0
-    assert run_cli(["--en", "--init-config", str(english)]).returncode == 0
-    zh_text = chinese.read_text(encoding="utf-8")
-    en_text = english.read_text(encoding="utf-8")
+def test_config_template_uses_selected_language() -> None:
+    chinese = run_cli(["--zh", "--config-template"])
+    english = run_cli(["--en", "--config-template"])
+    assert chinese.returncode == 0
+    assert english.returncode == 0
+    zh_text = chinese.stdout
+    en_text = english.stdout
     assert "配置" in zh_text
     assert "输出风格" in zh_text
     assert "configuration" in en_text
@@ -197,38 +197,11 @@ def test_init_config_uses_selected_language(tmp_path: Path) -> None:
     assert "width = 150" in en_text
 
 
-def test_init_config_stdout_mode() -> None:
-    result = run_cli(["--en", "--init-config", "-"])
-    assert result.returncode == 0
-    assert "[format]" in result.stdout
-    assert "width = 150" in result.stdout
-    assert "wrote configuration template" not in result.stdout
-
-
-def test_init_config_refuses_overwrite_without_force(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
-    target.write_text("keep = true\n", encoding="utf-8")
-    refused = run_cli(["--en", "--init-config", str(target)])
-    assert refused.returncode == 2
-    assert target.read_text(encoding="utf-8") == "keep = true\n"
-    assert "refusing to overwrite" in refused.stderr
-    forced = run_cli(["--en", "--force", "--init-config", str(target)])
-    assert forced.returncode == 0
-    assert "width = 150" in target.read_text(encoding="utf-8")
-
-
-def test_init_config_conflicts_with_formatting_options(tmp_path: Path) -> None:
-    target = tmp_path / "skillfmt.toml"
-    result = run_cli(["--en", "--init-config", str(target), "--check", str(target)])
+def test_config_template_conflicts_with_formatting_options() -> None:
+    result = run_cli(["--en", "--config-template", "--check", "missing.il"])
     assert result.returncode == 2
-    assert not target.exists()
-    assert "--init-config cannot be combined with formatting options" in result.stderr
-
-
-def test_force_requires_init_config() -> None:
-    result = run_cli(["--en", "--force"], "a = 1\n")
-    assert result.returncode == 2
-    assert "--force is only valid with --init-config" in result.stderr
+    assert result.stdout == ""
+    assert "--config-template cannot be combined with formatting options" in result.stderr
 
 
 def test_directory_input_expands_recursively(tmp_path: Path) -> None:

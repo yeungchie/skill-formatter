@@ -53,12 +53,10 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "quiet": "Do not print unsupported-syntax warnings.",
         "verbose": "Print config source and per-input status to stderr.",
-        "init_config": (
-            "Write a commented skillfmt.toml template to PATH (default: skillfmt.toml; '-' = "
-            "stdout). Refuses to overwrite unless --force; cannot be combined with formatting "
-            "options."
+        "config_template": (
+            "Print a commented skillfmt.toml template to stdout and exit. Redirect it to save "
+            "the file; no file is written by skillfmt."
         ),
-        "force": "Allow --init-config to overwrite an existing file.",
         "force_zh": "Force Chinese help and diagnostics.",
         "force_en": "Force English help and diagnostics.",
         "epilog": (
@@ -75,8 +73,6 @@ TEXTS: dict[str, dict[str, str]] = {
         "warning_label": "warning",
         "would_reformat": "would reformat",
         "error_label": "error",
-        "config_written": "wrote configuration template: {path}",
-        "config_exists": "refusing to overwrite existing file: {path} (use --force)",
         "no_skill_files": "no .il or .ils files found",
         "verbose_config": "config: {path}",
         "verbose_no_config": "config: built-in defaults",
@@ -98,8 +94,9 @@ TEXTS: dict[str, dict[str, str]] = {
         "err_dash_mixed": "'-' cannot be combined with file or directory paths",
         "err_lines_one_file": "--lines accepts exactly one input file",
         "err_multiple_need_action": "multiple inputs require --write, --check or --diff",
-        "err_init_config_conflict": "--init-config cannot be combined with formatting options",
-        "err_force_without_init": "--force is only valid with --init-config",
+        "err_config_template_conflict": (
+            "--config-template cannot be combined with formatting options"
+        ),
     },
     "zh": {
         "usage": "用法: ",
@@ -132,11 +129,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "best_effort": "预留的纯空白回退；目前仍原样保留整个顶层 form。",
         "quiet": "不输出未支持语法警告。",
         "verbose": "向 stderr 输出配置来源与每个输入的状态。",
-        "init_config": (
-            "把带注释的 skillfmt.toml 模板写入 PATH（默认 skillfmt.toml；'-' 输出到 stdout）。"
-            "已有文件默认拒绝，--force 才覆盖；不能与其他格式化选项同用。"
+        "config_template": (
+            "把带注释的 skillfmt.toml 模板打印到 stdout 并退出；由用户自行重定向保存，"
+            "skillfmt 不写任何文件。"
         ),
-        "force": "允许 --init-config 覆盖已有文件。",
         "force_zh": "强制中文帮助与诊断。",
         "force_en": "强制英文帮助与诊断。",
         "epilog": (
@@ -152,8 +148,6 @@ TEXTS: dict[str, dict[str, str]] = {
         "warning_label": "警告",
         "would_reformat": "需要重新格式化",
         "error_label": "错误",
-        "config_written": "已写入配置模板: {path}",
-        "config_exists": "拒绝覆盖已存在的文件: {path}（使用 --force 覆盖）",
         "no_skill_files": "未找到 .il 或 .ils 文件",
         "verbose_config": "配置: {path}",
         "verbose_no_config": "配置: 内置默认值",
@@ -175,8 +169,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "err_dash_mixed": "'-' 不能与文件或目录路径混用",
         "err_lines_one_file": "--lines 只接受一个输入文件",
         "err_multiple_need_action": "多个输入需要配合 --write、--check 或 --diff",
-        "err_init_config_conflict": "--init-config 不能与格式化选项同用",
-        "err_force_without_init": "--force 只能与 --init-config 同用",
+        "err_config_template_conflict": "--config-template 不能与格式化选项同用",
     },
 }
 

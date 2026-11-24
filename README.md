@@ -30,7 +30,7 @@ skillfmt --diff file.il          # 输出 unified diff
 cat file.il | skillfmt           # stdin 过滤模式
 skillfmt --lines 10:20 file.il   # 只格式化第 10-20 行
 skillfmt --check src/            # 递归检查目录下的 *.il / *.ils
-skillfmt --init-config           # 生成 skillfmt.toml 模板
+skillfmt --config-template > skillfmt.toml  # 打印配置模板
 ```
 
 常用选项：
@@ -48,17 +48,16 @@ skillfmt --init-config           # 生成 skillfmt.toml 模板
 | `--only CATS` / `--skip CATS` | 只启用/跳过分类 |
 | `--strict` | 任一警告视为错误 |
 | `--best-effort` | 未确认语法保留原样（兼容预留） |
-| `--init-config [PATH]` | 生成带注释的配置模板；默认 `skillfmt.toml`，`-` 输出到 stdout |
-| `--force` | 允许 `--init-config` 覆盖已有文件 |
+| `--config-template` | 把带注释的配置模板打印到 stdout，不写文件 |
 | `-v, --verbose` | 向 stderr 输出配置来源与每个输入的状态 |
 
-退出码：`0` 成功；`1` check/diff 有差异；`2` 用法、IO、解析/校验失败、strict 警告或拒绝覆盖配置。
+退出码：`0` 成功；`1` check/diff 有差异；`2` 用法、IO、解析/校验失败或 strict 警告。
 
 `stdin` 格式化模式出错时会把输入原字节写回 stdout 并返回 2，保证 `:%!skillfmt` 与编辑器不会丢文本。
 
 帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定，例如 `skillfmt --zh -h`。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
 
-帮助按“选项一句话说明 + 末尾退出码与语言规则”组织；只有 `--lines`、`--line-width`、`--init-config` 等非显然行为才展开说明。
+帮助按“选项一句话说明 + 末尾退出码与语言规则”组织；只有 `--lines`、`--line-width`、`--config-template` 等非显然行为才展开说明。
 
 ## 格式分类
 
@@ -110,13 +109,11 @@ hanging = ["let", "letseq", "letrec", "quote"]
 生成模板：
 
 ```sh
-skillfmt --init-config                 # 写入 ./skillfmt.toml
-skillfmt --init-config config.toml     # 写入指定路径
-skillfmt --init-config -               # 输出到 stdout
-skillfmt --force --init-config         # 覆盖已有 skillfmt.toml
+skillfmt --config-template > skillfmt.toml        # 英文注释
+skillfmt --zh --config-template > skillfmt.toml   # 中文注释
 ```
 
-模板包含全部配置键的注释与默认值，内容随 `--zh` / `--en` 选择中文或英文注释。默认拒绝覆盖已有文件；目标目录不存在或写入失败时 exit 2。
+模板包含全部配置键的注释与默认值，只打印到 stdout，由用户自行重定向或保存；skillfmt 不写任何文件。注释语言随 `--zh` / `--en` 选择。
 
 ## 编辑器
 
