@@ -220,11 +220,13 @@ VS Code 自带的 `Shift+Alt+F` 是 Format Document，格式化整个文件；Fo
 
 Format Selection 只格式化选中的完整行，不会扩展到外层 form；选区按自身最小缩进作为起始缩进，选区外文本逐字保留。片段不完整或离开上下文后结构不成立时保持原样，并在输出面板输出提示。`skfmt.enableRangeFormatting` 为 `false` 时不注册选区格式化，命令面板中的 Format Selection 也会提示已禁用。
 
+扩展按以下顺序解析 CLI：`skfmt.executablePath` → PATH 上的 `skfmt` → `uvx skfmt` → `uv tool run skfmt`。三者都不可用或 `uvx skfmt` 失败时（例如内网无法访问 PyPI），会弹出错误并拒绝格式化。
+
 扩展设置：
 
 | 设置 | 作用 |
 | --- | --- |
-| `skfmt.executablePath` | `skfmt` 可执行文件路径 |
+| `skfmt.executablePath` | 可选；留空时自动探测本地 `skfmt` / `uvx` |
 | `skfmt.configPath` | 指定 `skfmt.toml`；留空则自动查找 |
 | `skfmt.extraArgs` | 追加给 `skfmt format` 的参数 |
 | `skfmt.timeoutMs` | 单次格式化超时（毫秒） |
@@ -238,7 +240,7 @@ npm run package
 code --install-extension skfmt-0.1.0.vsix
 ```
 
-扩展通过 PATH 上的 `skfmt` 工作；可在设置中改 `skfmt.executablePath`。
+扩展优先使用 PATH 上的 `skfmt`；找不到时自动尝试 `uvx skfmt`。需要固定路径时再设置 `skfmt.executablePath`。
 
 扩展只负责调用 CLI；升级插件或本仓库后，务必同步更新已安装的 CLI，否则 VS Code 仍会调用旧版 `skfmt`：
 
@@ -278,7 +280,7 @@ vim -Nu NONE -c 'helptags ~/.vim/doc' -c 'q'
 :help skfmt
 ```
 
-`skfmt` 不在 PATH 时，在 `.vimrc` 中设置 `g:skfmt_executable`；追加参数用 `g:skfmt_args`。修改后执行 `:SkfmtRefresh`。
+`g:skfmt_executable` 默认留空，插件按本地 `skfmt` → `uvx skfmt` → `uv tool run skfmt` 自动探测；需要固定路径时再设置它。追加参数用 `g:skfmt_args`。修改后执行 `:SkfmtRefresh`。
 
 ```vim
 :Skfmt                    " 格式化整个缓冲区

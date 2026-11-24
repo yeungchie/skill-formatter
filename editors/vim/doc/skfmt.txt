@@ -45,12 +45,16 @@ FILTERS
 
 OPTIONS
 
-  g:skfmt_executable     Path to the executable. Default: "skfmt".
+  g:skfmt_executable     Optional path to the executable. When empty (default),
+                        the plugin tries "skfmt" on $PATH, then "uvx skfmt",
+                        then "uv tool run skfmt".
   g:skfmt_args           Extra shell arguments appended to the command,
                         including the 'formatprg' used by |gq|.
 
-The plugin runs `skfmt --version` before formatting and requires
-`>= 0.1.0`; older or unparseable versions are refused.
+If no command is available, or `uvx skfmt` fails (for example without PyPI
+access), formatting is refused with an error.  The plugin runs the resolved
+command with `--version` before formatting and requires `>= 0.1.0`; older or
+unparseable versions are refused.  |:SkfmtVersion| shows the resolved command.
 
 Vim 7.4 NOTES
 

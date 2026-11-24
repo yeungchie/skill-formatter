@@ -90,17 +90,19 @@ Plug '/path/to/skill-formatter', {'rtp': 'editors/vim'}
 
 ## 4. 配置
 
-在 `.vimrc` 中设置：
+在 `.vimrc` 中按需设置：
 
 ```vim
-let g:skfmt_executable = '/absolute/path/to/skfmt'
+let g:skfmt_executable = '/absolute/path/to/skfmt'  " 可选；留空则自动探测
 let g:skfmt_args = '--line-width 100'
 ```
 
-- `g:skfmt_executable`：`skfmt` 路径；默认 `"skfmt"`，即从 `PATH` 查找。
-- `g:skfmt_args`：追加给 `skfmt format` 的原始 shell 参数，也会进入 `formatprg`。
+- `g:skfmt_executable`：可选，默认空。留空时按 `PATH` 上的 `skfmt` → `uvx skfmt` → `uv tool run skfmt` 顺序自动探测；设置后只使用该路径。
+- `g:skfmt_args`：追加给格式化命令的原始 shell 参数，也会进入 `formatprg`。
 
-插件在格式化前运行 `skfmt --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化。
+如果本地没有 `skfmt`，插件会尝试 `uvx skfmt`。`uvx` 需要能访问 PyPI；内网环境请安装本地 `skfmt`，或把 `g:skfmt_executable` 指向可用路径。三者都不可用或 `uvx skfmt` 失败时，插件会报错并拒绝格式化。
+
+插件在格式化前运行 `<解析到的命令> --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化。`:SkfmtVersion` 会显示实际使用的命令来源。
 
 运行中修改这两个变量后执行：
 

@@ -12,8 +12,45 @@ let s:min_version = '0.1.0'
 let s:version_ok = -1
 let s:version_exe = ''
 
-function! s:Executable() abort
-  return get(g:, 'skfmt_executable', s:tool)
+function! s:CommandParts() abort
+  let l:configured = get(g:, 'skfmt_executable', '')
+  if !empty(l:configured) && l:configured !=# s:tool
+    return [l:configured, '', 'configured']
+  endif
+  if executable(s:tool)
+    return [s:tool, '', 'local']
+  endif
+  if executable('uvx')
+    return ['uvx', s:tool, 'uvx']
+  endif
+  if executable('uv')
+    return ['uv', 'tool run ' . s:tool, 'uv']
+  endif
+  return ['', '', '']
+endfunction
+
+function! s:JoinCommand(exe, prefix) abort
+  if empty(a:exe)
+    return ''
+  endif
+  let l:cmd = shellescape(a:exe)
+  if !empty(a:prefix)
+    let l:cmd .= ' ' . a:prefix
+  endif
+  return l:cmd
+endfunction
+
+function! s:Command() abort
+  let l:parts = s:CommandParts()
+  return s:JoinCommand(l:parts[0], l:parts[1])
+endfunction
+
+function! skfmt#Available() abort
+  return !empty(s:Command())
+endfunction
+
+function! skfmt#Command() abort
+  return s:Command()
 endfunction
 
 function! s:ShowMessage(message) abort
@@ -43,7 +80,11 @@ function! s:VersionAtLeast(found, required) abort
 endfunction
 
 function! s:ReadVersion() abort
-  let l:output = system(shellescape(s:Executable()) . ' --version')
+  let l:cmd = s:Command()
+  if empty(l:cmd)
+    return ''
+  endif
+  let l:output = system(l:cmd . ' --version')
   if v:shell_error
     return ''
   endif
@@ -51,18 +92,29 @@ function! s:ReadVersion() abort
 endfunction
 
 function! skfmt#VersionOk() abort
-  let l:exe = s:Executable()
-  if s:version_exe !=# l:exe
+  let l:parts = s:CommandParts()
+  let l:command = s:JoinCommand(l:parts[0], l:parts[1])
+  if s:version_exe !=# l:command
     let s:version_ok = -1
-    let s:version_exe = l:exe
+    let s:version_exe = l:command
   endif
   if s:version_ok >= 0
     return s:version_ok
   endif
+  if empty(l:command)
+    let s:version_ok = 0
+    call s:ShowMessage(s:tool . ': not found; install skfmt or make uvx available')
+    return 0
+  endif
   let l:found = s:ReadVersion()
   if empty(l:found)
     let s:version_ok = 0
-    call s:ShowMessage(s:tool . ': cannot determine version; install or update the executable')
+    if l:parts[2] ==# 'uvx' || l:parts[2] ==# 'uv'
+      call s:ShowMessage(
+            \ s:tool . ': uvx could not run skfmt; install skfmt locally or ensure PyPI is reachable')
+    else
+      call s:ShowMessage(s:tool . ': cannot determine version; install or update the executable')
+    endif
     return 0
   endif
   if !s:VersionAtLeast(l:found, s:min_version)
@@ -77,16 +129,27 @@ function! skfmt#VersionOk() abort
 endfunction
 
 function! skfmt#Version() abort
+  let l:parts = s:CommandParts()
+  let l:command = s:JoinCommand(l:parts[0], l:parts[1])
+  if empty(l:command)
+    echomsg s:tool . ': not found; install skfmt or make uvx available'
+    return
+  endif
   let l:found = s:ReadVersion()
   if empty(l:found)
-    echomsg s:tool . ': version unknown'
+    echomsg s:tool . ': version unknown via ' . l:command
   else
-    echomsg s:tool . ' ' . l:found . ' (required >= ' . s:min_version . ')'
+    echomsg s:tool . ' ' . l:found . ' via ' . l:command
+          \ . ' (' . l:parts[2] . '; required >= ' . s:min_version . ')'
   endif
 endfunction
 
 function! skfmt#FormatPrg() abort
-  let l:cmd = shellescape(s:Executable()) . ' format'
+  let l:cmd = s:Command()
+  if empty(l:cmd)
+    return ''
+  endif
+  let l:cmd .= ' format'
   let l:extra = get(g:, 'skfmt_args', '')
   if !empty(l:extra)
     let l:cmd .= ' ' . l:extra
@@ -132,10 +195,11 @@ function! s:Replace(lines) abort
 endfunction
 
 function! skfmt#Format(all, first, last) abort
-  let l:exe = s:Executable()
-  if !executable(l:exe)
+  let l:parts = s:CommandParts()
+  let l:command = s:JoinCommand(l:parts[0], l:parts[1])
+  if empty(l:command)
     echohl ErrorMsg
-    echomsg s:tool . ': executable not found: ' . l:exe
+    echomsg s:tool . ': not found; install skfmt or make uvx available'
     echohl None
     return
   endif
@@ -148,7 +212,7 @@ function! skfmt#Format(all, first, last) abort
   let l:err_file = tempname()
   try
     call writefile(getline(1, '$'), l:in_file)
-    let l:cmd = shellescape(l:exe) . ' format'
+    let l:cmd = l:command . ' format'
     let l:extra = get(g:, 'skfmt_args', '')
     if !empty(l:extra)
       let l:cmd .= ' ' . l:extra

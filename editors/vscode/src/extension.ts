@@ -4,11 +4,13 @@ import {
   type FormatOptions,
   MIN_CLI_VERSION,
   TOOL_NAME,
-  buildArgs,
   changedSpan,
   containsSpan,
+  describeCommand,
+  invocationArgs,
   minimalEdit,
   parseVersion,
+  resolveCommand,
   runFormatter,
   runCommand,
   versionAtLeast,
@@ -17,26 +19,48 @@ import {
 const output = vscode.window.createOutputChannel("SKILL Formatter");
 const versionChecks = new Map<string, Promise<string | null>>();
 
-function cliVersion(options: FormatOptions): Promise<string | null> {
-  let pending = versionChecks.get(options.executable);
+function commandKey(command: string, prefixArgs: string[]): string {
+  return [command, ...prefixArgs].join("\0");
+}
+
+function cliVersion(
+  command: string,
+  prefixArgs: string[],
+  timeoutMs: number,
+): Promise<string | null> {
+  const key = commandKey(command, prefixArgs);
+  let pending = versionChecks.get(key);
   if (!pending) {
-    pending = runCommand(
-      options.executable,
-      ["--version"],
-      "",
-      Math.min(options.timeoutMs, 5000),
-    )
-      .then((result) => (result.code === 0 ? parseVersion(result.stdout) : null))
-      .catch(() => null);
-    versionChecks.set(options.executable, pending);
+    pending = runCommand(command, [...prefixArgs, "--version"], "", timeoutMs)
+      .then((result) => {
+        const version = result.code === 0 ? parseVersion(result.stdout) : null;
+        if (version === null) {
+          versionChecks.delete(key);
+        }
+        return version;
+      })
+      .catch(() => {
+        versionChecks.delete(key);
+        return null;
+      });
+    versionChecks.set(key, pending);
   }
   return pending;
 }
 
+function probeCommand(
+  command: string,
+  _args: string[],
+  timeoutMs: number,
+): Promise<boolean> {
+  return cliVersion(command, [], timeoutMs).then((version) => version !== null);
+}
+
 function configFor(document: vscode.TextDocument): FormatOptions {
   const config = vscode.workspace.getConfiguration(CONFIG_SECTION, document.uri);
+  const executable = config.get<string>("executablePath", "").trim();
   return {
-    executable: config.get<string>("executablePath", TOOL_NAME),
+    executable: executable || undefined,
     configPath: config.get<string>("configPath", "") || undefined,
     extraArgs: config.get<string[]>("extraArgs", []),
     stdinPath: document.uri.scheme === "file" ? document.uri.fsPath : undefined,
@@ -77,18 +101,33 @@ async function formatDocument(
   range?: vscode.Range,
 ): Promise<vscode.TextEdit[]> {
   const options = configFor(document);
-  const version = await cliVersion(options);
-  if (version === null) {
-    output.appendLine(`cannot determine version: ${options.executable} --version`);
+  const resolved = await resolveCommand(options, (command, args) =>
+    probeCommand(command, args, options.timeoutMs),
+  );
+  if (resolved === null) {
+    output.appendLine("skfmt is not installed and neither uvx nor uv is available");
     vscode.window.showErrorMessage(
-      `${TOOL_NAME}: cannot determine CLI version; install or update the executable`,
+      `${TOOL_NAME}: not found. Install skfmt, or install uv so the extension can run \`uvx skfmt\`.`,
+    );
+    return [];
+  }
+  const command = describeCommand(resolved);
+  const version = await cliVersion(resolved.command, resolved.prefixArgs, options.timeoutMs);
+  if (version === null) {
+    output.appendLine(`cannot determine version: ${command} --version`);
+    const hint =
+      resolved.source === "uvx" || resolved.source === "uv"
+        ? "uvx/uv could not run skfmt; install skfmt locally or ensure PyPI is reachable"
+        : "install or update the executable";
+    vscode.window.showErrorMessage(
+      `${TOOL_NAME}: cannot determine CLI version (${command}); ${hint}`,
     );
     return [];
   }
   if (!versionAtLeast(version, MIN_CLI_VERSION)) {
-    output.appendLine(`${TOOL_NAME} ${version} is older than required ${MIN_CLI_VERSION}`);
+    output.appendLine(`${command} ${version} is older than required ${MIN_CLI_VERSION}`);
     vscode.window.showErrorMessage(
-      `${TOOL_NAME} ${version} is too old; requires >= ${MIN_CLI_VERSION}. Run: uv tool install --force <repository>`,
+      `${TOOL_NAME} ${command} ${version} is too old; requires >= ${MIN_CLI_VERSION}. Run: uv tool install --force <repository>`,
     );
     return [];
   }
@@ -97,7 +136,7 @@ async function formatDocument(
   }
   const text = document.getText();
   try {
-    const result = await runFormatter(options, text);
+    const result = await runFormatter(resolved, options, text);
     if (result.stderr) {
       output.appendLine(result.stderr.trimEnd());
     }
@@ -109,7 +148,9 @@ async function formatDocument(
       const changed = changedSpan(text, result.stdout);
       const bounds = selectionBounds(document, range);
       if (changed && !containsSpan(bounds, changed)) {
-        output.appendLine(`command: ${options.executable} ${buildArgs(options).join(" ")}`);
+        output.appendLine(
+          `command: ${resolved.command} ${invocationArgs(resolved, options).join(" ")}`,
+        );
         output.appendLine(
           `${TOOL_NAME} changed text outside lines ${options.lines}; edit refused`,
         );
@@ -132,7 +173,7 @@ async function formatDocument(
   } catch (error) {
     output.appendLine(String(error));
     vscode.window.showErrorMessage(
-      `${TOOL_NAME}: cannot run executable; install it with \`uv tool install .\` from this repository`,
+      `${TOOL_NAME}: cannot run ${command}; install skfmt or ensure \`uvx skfmt\` works`,
     );
     return [];
   }

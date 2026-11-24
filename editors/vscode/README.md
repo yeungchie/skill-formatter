@@ -30,12 +30,22 @@ To make `.il`/`.ils` files open as `skill`, add your own association:
 }
 ```
 
-The `skfmt` executable must be on `PATH`, or set
-`skfmt.executablePath`. Range formatting is implemented by sending
-the whole document plus `--lines a:b` to `skfmt format`. Only the selected
-lines are replaced; the selection is formatted as a fragment using its own
-base indentation. Incomplete fragments are left unchanged with a diagnostic,
-and text outside the selected lines is preserved byte for byte.
+The extension resolves the CLI in this order:
+
+1. `skfmt.executablePath`, when set
+2. `skfmt` on `PATH`
+3. `uvx skfmt`
+4. `uv tool run skfmt`
+
+If none is available, or `uvx skfmt` cannot run, formatting is refused with an
+error. `uvx` needs access to PyPI, so an offline machine should install `skfmt`
+locally or point `skfmt.executablePath` at a working executable.
+
+Range formatting is implemented by sending the whole document plus
+`--lines a:b` to `skfmt format`. Only the selected lines are replaced; the
+selection is formatted as a fragment using its own base indentation.
+Incomplete fragments are left unchanged with a diagnostic, and text outside the
+selected lines is preserved byte for byte.
 
 Before formatting, the extension runs `skfmt --version` and requires at
 least `0.1.0`. If the version is older or cannot be parsed, the edit is
@@ -45,7 +55,7 @@ Upgrade the installed CLI whenever the formatter or this extension changes:
 
 ```sh
 cd skill-formatter
-uv tool install --force .
+uv tool install --force '.[full]'
 ```
 
 If the CLI changes text outside the selection, the extension refuses the edit

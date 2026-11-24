@@ -5,13 +5,23 @@ export const TOOL_NAME = "skfmt";
 export const CONFIG_SECTION = TOOL_NAME;
 
 export interface FormatOptions {
-  executable: string;
+  executable?: string;
   configPath?: string;
   extraArgs: string[];
   stdinPath?: string;
   lines?: string;
   timeoutMs: number;
 }
+
+export type CommandSource = "configured" | "local" | "uvx" | "uv";
+
+export interface ResolvedCommand {
+  command: string;
+  prefixArgs: string[];
+  source: CommandSource;
+}
+
+export type CommandProbe = (command: string, args: string[]) => Promise<boolean>;
 
 export interface RunResult {
   code: number;
@@ -66,6 +76,40 @@ export function buildArgs(options: FormatOptions): string[] {
   return args;
 }
 
+export function candidateCommands(configured?: string): ResolvedCommand[] {
+  if (configured) {
+    return [{ command: configured, prefixArgs: [], source: "configured" }];
+  }
+  return [
+    { command: TOOL_NAME, prefixArgs: [], source: "local" },
+    { command: "uvx", prefixArgs: [TOOL_NAME], source: "uvx" },
+    { command: "uv", prefixArgs: ["tool", "run", TOOL_NAME], source: "uv" },
+  ];
+}
+
+export function invocationArgs(resolved: ResolvedCommand, options: FormatOptions): string[] {
+  return [...resolved.prefixArgs, ...buildArgs(options)];
+}
+
+export async function resolveCommand(
+  options: FormatOptions,
+  probe: CommandProbe,
+): Promise<ResolvedCommand | null> {
+  for (const candidate of candidateCommands(options.executable)) {
+    if (candidate.source === "configured") {
+      return candidate;
+    }
+    if (await probe(candidate.command, ["--version"])) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+export function describeCommand(resolved: ResolvedCommand): string {
+  return [resolved.command, ...resolved.prefixArgs].join(" ");
+}
+
 export function runCommand(
   executable: string,
   args: string[],
@@ -107,10 +151,14 @@ export function runCommand(
   });
 }
 
-export function runFormatter(options: FormatOptions, text: string): Promise<RunResult> {
+export function runFormatter(
+  resolved: ResolvedCommand,
+  options: FormatOptions,
+  text: string,
+): Promise<RunResult> {
   return runCommand(
-    options.executable,
-    buildArgs(options),
+    resolved.command,
+    invocationArgs(resolved, options),
     text,
     options.timeoutMs,
   );

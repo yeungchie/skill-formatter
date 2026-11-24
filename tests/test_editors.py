@@ -33,6 +33,7 @@ def test_vscode_manifest_declares_skill_without_file_associations() -> None:
     assert "extensions" not in languages[0]
     assert "configurationDefaults" not in contributes
     assert "skfmt.languages" not in contributes["configuration"]["properties"]
+    assert contributes["configuration"]["properties"]["skfmt.executablePath"]["default"] == ""
     assert ".il" not in json.dumps(contributes)
     assert ".ils" not in json.dumps(contributes)
     assert (ROOT / "editors" / "vscode" / "language-configuration.json").is_file()

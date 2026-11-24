@@ -44,8 +44,8 @@
       "properties": {
         "skfmt.executablePath": {
           "type": "string",
-          "default": "skfmt",
-          "description": "Path to the skfmt executable."
+          "default": "",
+          "description": "Optional path to skfmt. Leave empty to try skfmt from PATH, then uvx skfmt."
         },
         "skfmt.configPath": {
           "type": "string",

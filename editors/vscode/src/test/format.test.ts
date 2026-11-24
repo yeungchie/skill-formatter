@@ -3,13 +3,102 @@ import { test } from "node:test";
 
 import {
   buildArgs,
+  candidateCommands,
   changedSpan,
   containsSpan,
+  describeCommand,
+  invocationArgs,
   minimalEdit,
   parseVersion,
+  resolveCommand,
   runCommand,
   versionAtLeast,
 } from "../format";
+
+test("candidateCommands prefers local skfmt, then uvx, then uv", () => {
+  assert.deepEqual(candidateCommands(), [
+    { command: "skfmt", prefixArgs: [], source: "local" },
+    { command: "uvx", prefixArgs: ["skfmt"], source: "uvx" },
+    { command: "uv", prefixArgs: ["tool", "run", "skfmt"], source: "uv" },
+  ]);
+});
+
+test("candidateCommands honors an explicit executable", () => {
+  assert.deepEqual(candidateCommands("/opt/skfmt"), [
+    { command: "/opt/skfmt", prefixArgs: [], source: "configured" },
+  ]);
+});
+
+test("invocationArgs adds the uvx prefix", () => {
+  assert.deepEqual(
+    invocationArgs(
+      { command: "uvx", prefixArgs: ["skfmt"], source: "uvx" },
+      { extraArgs: [], stdinPath: "a.il", lines: "2:3", timeoutMs: 1000 },
+    ),
+    ["skfmt", "format", "--stdin-path", "a.il", "--lines", "2:3"],
+  );
+});
+
+test("resolveCommand prefers a configured executable", async () => {
+  let probed = false;
+  const resolved = await resolveCommand(
+    { executable: "/opt/skfmt", extraArgs: [], timeoutMs: 1000 },
+    async () => {
+      probed = true;
+      return false;
+    },
+  );
+  assert.deepEqual(resolved, {
+    command: "/opt/skfmt",
+    prefixArgs: [],
+    source: "configured",
+  });
+  assert.equal(probed, false);
+});
+
+test("resolveCommand prefers local skfmt", async () => {
+  const order: string[] = [];
+  const resolved = await resolveCommand(
+    { extraArgs: [], timeoutMs: 1000 },
+    async (command) => {
+      order.push(command);
+      return command === "skfmt";
+    },
+  );
+  assert.deepEqual(resolved, { command: "skfmt", prefixArgs: [], source: "local" });
+  assert.deepEqual(order, ["skfmt"]);
+});
+
+test("resolveCommand falls back to uvx then uv", async () => {
+  const uvx = await resolveCommand(
+    { extraArgs: [], timeoutMs: 1000 },
+    async (command) => command === "uvx",
+  );
+  assert.deepEqual(uvx, { command: "uvx", prefixArgs: ["skfmt"], source: "uvx" });
+  const uv = await resolveCommand(
+    { extraArgs: [], timeoutMs: 1000 },
+    async (command) => command === "uv",
+  );
+  assert.deepEqual(uv, {
+    command: "uv",
+    prefixArgs: ["tool", "run", "skfmt"],
+    source: "uv",
+  });
+});
+
+test("resolveCommand returns null when nothing is available", async () => {
+  assert.equal(
+    await resolveCommand({ extraArgs: [], timeoutMs: 1000 }, async () => false),
+    null,
+  );
+});
+
+test("describeCommand joins the prefix args", () => {
+  assert.equal(
+    describeCommand({ command: "uvx", prefixArgs: ["skfmt"], source: "uvx" }),
+    "uvx skfmt",
+  );
+});
 
 test("buildArgs includes config, stdin path and range", () => {
   assert.deepEqual(
