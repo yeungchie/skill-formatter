@@ -2,6 +2,18 @@
 
 Requires Vim 7.4 or newer and the |skillfmt| command on $PATH.
 
+INSTALL
+
+Vim 7.4 has no package directory support.  Copy plugin/, autoload/,
+ftplugin/, ftdetect/ and doc/ into a runtime directory (Unix ~/.vim,
+Windows ~/vimfiles), then run:
+
+    :helptags ~/.vim/doc
+
+Vim 8+ may use a package directory such as
+~/.vim/pack/plugins/start/skillfmt/.  Set |g:skillfmt_executable| when
+the executable is not on $PATH.
+
 COMMANDS
 
                                                         *:Skillfmt*

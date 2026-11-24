@@ -195,7 +195,34 @@ code --install-extension skill-formatter-0.1.0.vsix
 
 ### Vim（7.4+）
 
-插件位于 `editors/vim/`，只依赖 PATH 上的 `skillfmt` 与 `encoding=utf-8`。
+插件位于 `editors/vim/`。完整安装、配置与排错见 [editors/vim/README.md](editors/vim/README.md)。
+
+先安装 CLI：
+
+```sh
+cd skill-formatter
+uv tool install .
+skillfmt --version
+```
+
+Vim 7.4 手动安装（Unix 示例；Windows 把 `~/.vim` 换成 `~/vimfiles`）：
+
+```sh
+mkdir -p ~/.vim
+cp -R /path/to/skill-formatter/editors/vim/* ~/.vim/
+vim -Nu NONE -c 'helptags ~/.vim/doc' -c 'q'
+```
+
+复制后打开 `.il` 文件，验证：
+
+```vim
+:set filetype?              " skill
+:echo executable('skillfmt') " 1
+:command Skillfmt           " 存在
+:help skillfmt
+```
+
+`skillfmt` 不在 PATH 时，在 `.vimrc` 中设置 `g:skillfmt_executable`；追加参数用 `g:skillfmt_args`。修改后执行 `:SkillfmtRefresh`。
 
 ```vim
 :Skillfmt              " 格式化整个缓冲区
@@ -204,7 +231,7 @@ code --install-extension skill-formatter-0.1.0.vsix
 :'<,'>!skillfmt format " 原生过滤：选区（片段模式）
 ```
 
-`ftplugin` 在 `skillfmt` 可执行时设置 `formatprg`，可用 `gq`；`g:skillfmt_executable` 与 `g:skillfmt_args` 都会参与命令行构造。运行中修改这两个变量后执行 `:SkillfmtRefresh` 重新生成 `formatprg`。插件不使用 Vim 8+ 的 `systemlist`、job、timer、JSON 等特性。
+`ftplugin` 在 `skillfmt` 可执行时设置 `formatprg`，可用 `gq`。插件不使用 Vim 8+ 的 `systemlist`、job、timer、JSON 等特性。
 
 ## 安全模型
 
