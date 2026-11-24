@@ -199,6 +199,13 @@ class Renderer:
         }
 
     def _render_plist(self, node: Node, indent: int) -> None:
+        meta = node.meta.get("context")
+        if meta == "bindings":
+            self._render_bindings(node, indent)
+            return
+        if meta == "clause":
+            self._render_clause(node, indent)
+            return
         flat = self.flat(node)
         if flat is not None and self._fits(flat):
             self.out.write(flat)
@@ -215,13 +222,6 @@ class Renderer:
             self.out.newline(indent)
             self.out.write("}")
             return
-        meta = node.meta.get("context")
-        if meta == "bindings":
-            self._render_bindings(node, indent)
-            return
-        if meta == "clause":
-            self._render_clause(node, indent)
-            return
         self.out.write("(")
         align = len(self.out.current)
         if node.children:
@@ -232,11 +232,15 @@ class Renderer:
 
     def _render_clause(self, node: Node, indent: int) -> None:
         flat = self.flat(node)
-        if flat is not None and self._fits(flat):
+        items = node.children
+        body = items[1:]
+        simple_body = len(body) == 1 and body[0].kind != "assign"
+        if body and body[0].kind == "plist" and body[0].value == "{" and len(body[0].children) > 1:
+            simple_body = False
+        if flat is not None and simple_body and self._fits(flat):
             self.out.write(flat)
             return
         self.out.write("(")
-        items = node.children
         if not items:
             self.out.write(")")
             return
@@ -752,7 +756,7 @@ class Renderer:
             if len([c for c in node.children if c.kind != "comment"]) > 1:
                 return None
         if node.value == "if":
-            if len([c for c in node.children if c.kind != "comment"]) > 2:
+            if len([c for c in node.children if c.kind != "comment"]) > 3:
                 return None
         if node.value in {"foreach", "for"}:
             if len([c for c in node.children if c.kind != "comment"]) > 2:
