@@ -61,7 +61,7 @@ skillfmt config template > skillfmt.toml  # 打印配置模板
 
 `stdin` 格式化模式出错时会把输入原字节写回 stdout 并返回 2，保证 `:%!skillfmt format` 与编辑器不会丢文本。
 
-`stdin` 读取到 EOF 为止；交互式终端中用 `Ctrl+D` 结束输入。
+`stdin` 读取到 EOF 为止；POSIX 终端用 `Ctrl+D` 结束输入，Windows 控制台通常用 `Ctrl+Z`，或改用管道/重定向输入。
 
 帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定。它们可写在子命令前后，例如 `skillfmt --zh check` 与 `skillfmt check --zh` 等价。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
 

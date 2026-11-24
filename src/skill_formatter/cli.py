@@ -370,7 +370,7 @@ def _reconfigure_stdio() -> None:
 
 
 def _read_stdin() -> bytes:
-    """Read stdin until EOF; closing the input (Ctrl+D) ends the input."""
+    """Read stdin until EOF; POSIX ttys send EOF with Ctrl+D."""
     try:
         return sys.stdin.buffer.read()
     except (OSError, ValueError):
