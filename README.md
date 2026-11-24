@@ -109,10 +109,29 @@ skfmt config template > skfmt.toml   # 打印配置模板
 
 ## 版本与兼容性
 
+- 当前发布版本：`0.1.0`（PyPI、VS Code Marketplace、GitHub）。
 - CLI 用 `skfmt --version` 输出 `skfmt 0.1.0`。
-- VS Code 扩展与 Vim 插件在格式化前运行 `skfmt --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化并提示升级。
-- 升级 CLI：`uv tool install --force .`。VS Code 需重载窗口；Vim 执行 `:SkfmtRefresh`。
-- 发布前版本保持 `0.1.0`。开始发布后，工具行为或特性有变化时同步提升版本号，并同步更新编辑器插件的最低要求。
+- VS Code 扩展与 Vim 插件在格式化前运行解析到的命令的 `--version`，当前最低要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化并提示升级。
+- 升级 CLI：`uv tool install --force '.[full]'`（或 `uvx skfmt`）。VS Code 需重载窗口；Vim 执行 `:SkfmtRefresh`。
+
+### 发版版本同步清单
+
+版本号的事实来源是 `src/skfmt/__init__.py` 的 `__version__`；`pyproject.toml` 由 hatch 动态读取它。发版时至少核对：
+
+- `src/skfmt/__init__.py`：`__version__`
+- `editors/vscode/package.json`：`version`，必须与 CLI 版本一致
+- `editors/vscode/src/format.ts`：`MIN_CLI_VERSION`，仅当插件需要更新版 CLI 时提升
+- `editors/vim/autoload/skfmt.vim`：`s:min_version`，与 `MIN_CLI_VERSION` 保持同步
+- `README.md`、`editors/vscode/README.md`、`editors/vim/README.md`：示例版本号与 VSIX 文件名
+- `tests/test_version.py`：会断言 VS Code 包版本与 `__version__` 一致、两个编辑器最低版本一致
+
+发版顺序建议：
+
+1. 按 SemVer 提升版本：不兼容改 MAJOR，新功能改 MINOR，修复改 PATCH。
+2. 跑 `uv run pytest`、`ruff`、`ty`、VS Code `npm test`、Vim 7.4 扫描与冒烟。
+3. `uv build` + `uv publish`。
+4. `npm run package` + `vsce publish --packagePath skfmt-X.Y.Z.vsix`。
+5. 打 Git 标签 `vX.Y.Z` 并发布 GitHub Release。
 
 `config` 子命令：
 
