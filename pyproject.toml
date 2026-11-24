@@ -16,6 +16,11 @@ full = ["rich>=13.9", "rich-argparse>=1.7"]
 [project.scripts]
 skfmt = "skfmt.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/yeungchie/skill-formatter"
+Repository = "https://github.com/yeungchie/skill-formatter"
+Issues = "https://github.com/yeungchie/skill-formatter/issues"
+
 [dependency-groups]
 dev = [
     "pytest>=8.3",

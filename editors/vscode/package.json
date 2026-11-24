@@ -6,6 +6,15 @@
   "publisher": "YEUNGCHIE",
   "author": "YEUNGCHIE",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yeungchie/skill-formatter.git",
+    "directory": "editors/vscode"
+  },
+  "homepage": "https://github.com/yeungchie/skill-formatter",
+  "bugs": {
+    "url": "https://github.com/yeungchie/skill-formatter/issues"
+  },
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -66,7 +75,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p .",
     "test": "npm run compile && node --test out/src/test/format.test.js",
-    "package": "vsce package --allow-missing-repository"
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

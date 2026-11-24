@@ -2,7 +2,7 @@
 
 一个面向 Cadence SKILL 源码的保守格式化器。默认做结构重排，但只改变空白与调用括号位置；不改变 token、注释正文或语义。遇到未确认的读取器语法时，整个顶层 form 原样保留。
 
-支持的语法 form 与格式化前后差异见 [docs/supported-forms.md](docs/supported-forms.md)。
+支持的语法 form 与格式化前后差异见 [docs/supported-forms.md](https://github.com/yeungchie/skill-formatter/blob/main/docs/supported-forms.md)。
 
 ## 安装
 
@@ -251,7 +251,7 @@ uv tool install --force .
 
 ### Vim（7.4+）
 
-插件位于 `editors/vim/`。完整安装、配置与排错见 [editors/vim/README.md](editors/vim/README.md)。
+插件位于 `editors/vim/`。完整安装、配置与排错见 [editors/vim/README.md](https://github.com/yeungchie/skill-formatter/blob/main/editors/vim/README.md)。
 
 先安装 CLI：
 

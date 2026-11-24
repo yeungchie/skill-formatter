@@ -43,6 +43,15 @@ def test_presentation_dependencies_are_optional() -> None:
     assert project["optional-dependencies"] == {"full": ["rich>=13.9", "rich-argparse>=1.7"]}
 
 
+def test_project_urls_match_repository() -> None:
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    vscode = json.loads((ROOT / "editors" / "vscode" / "package.json").read_text(encoding="utf-8"))
+    repository = "https://github.com/yeungchie/skill-formatter"
+    assert pyproject["project"]["urls"]["Repository"] == repository
+    assert vscode["repository"]["url"] == repository + ".git"
+    assert vscode["homepage"] == repository
+
+
 def test_editors_require_available_cli_version() -> None:
     vscode = (ROOT / "editors" / "vscode" / "src" / "format.ts").read_text(encoding="utf-8")
     vim = (ROOT / "editors" / "vim" / "autoload" / "skfmt.vim").read_text(encoding="utf-8")
