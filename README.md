@@ -29,15 +29,18 @@ skillfmt --check file.il         # 只检查，有差异 exit 1
 skillfmt --diff file.il          # 输出 unified diff
 cat file.il | skillfmt           # stdin 过滤模式
 skillfmt --lines 10:20 file.il   # 只格式化第 10-20 行
+skillfmt --check src/            # 递归检查目录下的 *.il / *.ils
+skillfmt --init-config           # 生成 skillfmt.toml 模板
 ```
 
 常用选项：
 
 | 选项 | 说明 |
 | --- | --- |
+| `PATH` | 文件、目录或 `-`（stdin）；目录递归展开为 `*.il` / `*.ils` |
 | `-w, --write` | 原子写入；失败不写任何字节 |
-| `--check` | 不改文件；有差异 exit 1 |
-| `--diff` | 输出 unified diff |
+| `--check` | 不改文件；有差异 exit 1，全部已格式化 exit 0 |
+| `--diff` | 输出 unified diff；有差异 exit 1 |
 | `--lines A:B` | 1 基、含两端；可重复；支持 `A:` / `:B` |
 | `--line-width N` | 全局行宽上限；覆盖配置 `format.width`，默认 150 |
 | `--base-indent N` | 指定第一层起始缩进 |
@@ -45,12 +48,17 @@ skillfmt --lines 10:20 file.il   # 只格式化第 10-20 行
 | `--only CATS` / `--skip CATS` | 只启用/跳过分类 |
 | `--strict` | 任一警告视为错误 |
 | `--best-effort` | 未确认语法保留原样（兼容预留） |
+| `--init-config [PATH]` | 生成带注释的配置模板；默认 `skillfmt.toml`，`-` 输出到 stdout |
+| `--force` | 允许 `--init-config` 覆盖已有文件 |
+| `-v, --verbose` | 向 stderr 输出配置来源与每个输入的状态 |
 
-退出码：`0` 成功；`1` check/diff 有差异；`2` 用法、IO、解析或校验失败。
+退出码：`0` 成功；`1` check/diff 有差异；`2` 用法、IO、解析/校验失败、strict 警告或拒绝覆盖配置。
 
 `stdin` 格式化模式出错时会把输入原字节写回 stdout 并返回 2，保证 `:%!skillfmt` 与编辑器不会丢文本。
 
-帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定，例如 `skillfmt --zh -h`。
+帮助信息支持中文/英文：按 `SKILLFMT_LANG`、`LC_ALL`、`LC_MESSAGES`、`LANGUAGE`、`LANG` 与系统默认语言自动选择；也可用互斥的 `--zh` / `--en` 强制指定，例如 `skillfmt --zh -h`。这两个开关只影响帮助、警告与诊断，不改变格式化结果。
+
+`--help` 末尾给出完整的退出码、输出通道与语言选择规则；每个选项的帮助也会说明成功与失败时的行为。
 
 ## 格式分类
 
@@ -98,6 +106,17 @@ hanging = ["let", "letseq", "letrec", "quote"]
 ```
 
 `wrapping=true` 自动要求 `indent` 与 `spacing`；`comments=true` 自动要求 `indent`。
+
+生成模板：
+
+```sh
+skillfmt --init-config                 # 写入 ./skillfmt.toml
+skillfmt --init-config config.toml     # 写入指定路径
+skillfmt --init-config -               # 输出到 stdout
+skillfmt --force --init-config         # 覆盖已有 skillfmt.toml
+```
+
+模板包含全部配置键的注释与默认值，内容随 `--zh` / `--en` 选择中文或英文注释。默认拒绝覆盖已有文件；目标目录不存在或写入失败时 exit 2。
 
 ## 编辑器
 

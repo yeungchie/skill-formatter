@@ -8,51 +8,52 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, NoReturn, cast
 
-from rich_argparse import RichHelpFormatter
+from rich_argparse import RawDescriptionRichHelpFormatter
 
 from . import __version__
-from .config import ConfigError, load_config
+from .config import ConfigError, load_config, render_template
 from .formatter import FormatError, FormatResult, format_range, format_source
 from .i18n import TEXTS, detect_language
 from .i18n import text as tr
 from .options import CATEGORIES, Options
 
 
-def _parse_line_range(text: str) -> tuple[int | None, int | None]:
+def _parse_line_range(text: str, lang: str = "en") -> tuple[int | None, int | None]:
     if ":" not in text:
-        raise argparse.ArgumentTypeError("expected a:b")
+        raise argparse.ArgumentTypeError(tr(lang, "err_range_format"))
     left, right = text.split(":", 1)
     try:
         start = int(left) if left else None
         end = int(right) if right else None
     except ValueError as exc:
-        raise argparse.ArgumentTypeError("line numbers must be integers") from exc
+        raise argparse.ArgumentTypeError(tr(lang, "err_range_integer")) from exc
     if start is not None and start < 1:
-        raise argparse.ArgumentTypeError("line numbers are 1-based")
+        raise argparse.ArgumentTypeError(tr(lang, "err_range_one_based"))
     if end is not None and end < 1:
-        raise argparse.ArgumentTypeError("line numbers are 1-based")
+        raise argparse.ArgumentTypeError(tr(lang, "err_range_one_based"))
     if start is not None and end is not None and end < start:
-        raise argparse.ArgumentTypeError("range end must not be before start")
+        raise argparse.ArgumentTypeError(tr(lang, "err_range_order"))
     return start, end
 
 
-def _parse_categories(text: str) -> set[str]:
+def _parse_categories(text: str, lang: str = "en") -> set[str]:
     names = {part.strip() for part in text.split(",") if part.strip()}
     unknown = names - set(CATEGORIES)
     if unknown:
-        raise argparse.ArgumentTypeError("unknown categories: " + ", ".join(sorted(unknown)))
+        joined = ", ".join(sorted(unknown))
+        raise argparse.ArgumentTypeError(tr(lang, "err_category_unknown").format(names=joined))
     return names
 
 
-def _parse_width(text: str) -> int:
+def _parse_width(text: str, lang: str = "en") -> int:
     try:
         value = int(text)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError("width must be an integer") from exc
+        raise argparse.ArgumentTypeError(tr(lang, "err_width_integer")) from exc
     if value < 20:
-        raise argparse.ArgumentTypeError("width must be >= 20")
+        raise argparse.ArgumentTypeError(tr(lang, "err_width_minimum"))
     return value
 
 
@@ -60,13 +61,28 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     lang = lang or detect_language()
     strings = {key: tr(lang, key) for key in TEXTS[lang]}
 
-    class LocalizedFormatter(RichHelpFormatter):
+    class LocalizedFormatter(RawDescriptionRichHelpFormatter):
         def add_usage(self, usage, actions, groups, prefix=None):  # type: ignore[no-untyped-def]
             super().add_usage(usage, actions, groups, prefix=prefix or strings["usage"])
 
-    parser = argparse.ArgumentParser(
+    class LocalizedParser(argparse.ArgumentParser):
+        def error(self, message: str) -> NoReturn:
+            self.print_usage(sys.stderr)
+            self.exit(2, f"{self.prog}: {strings['error_label']}: {message}\n")
+
+    def parse_line_range(value: str) -> tuple[int | None, int | None]:
+        return _parse_line_range(value, lang)
+
+    def parse_categories(value: str) -> set[str]:
+        return _parse_categories(value, lang)
+
+    def parse_width(value: str) -> int:
+        return _parse_width(value, lang)
+
+    parser = LocalizedParser(
         prog="skillfmt",
         description=strings["description"],
+        epilog=strings["epilog"],
         formatter_class=LocalizedFormatter,
         add_help=False,
     )
@@ -77,21 +93,21 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     parser.add_argument(
         "--lines",
         action="append",
-        type=_parse_line_range,
+        type=parse_line_range,
         metavar="A:B",
         help=strings["lines"],
     )
     parser.add_argument(
         "--line-width",
-        type=_parse_width,
+        type=parse_width,
         dest="line_width",
         metavar="N",
         help=strings["line_width"],
     )
     parser.add_argument("--base-indent", type=int, metavar="N", help=strings["base_indent"])
     parser.add_argument("--stdin-path", metavar="PATH", help=strings["stdin_path"])
-    parser.add_argument("--only", type=_parse_categories, metavar="CATS", help=strings["only"])
-    parser.add_argument("--skip", type=_parse_categories, metavar="CATS", help=strings["skip"])
+    parser.add_argument("--only", type=parse_categories, metavar="CATS", help=strings["only"])
+    parser.add_argument("--skip", type=parse_categories, metavar="CATS", help=strings["skip"])
     parser.add_argument("--config", type=Path, metavar="PATH", help=strings["config"])
     parser.add_argument("--strict", action="store_true", help=strings["strict"])
     parser.add_argument(
@@ -99,6 +115,14 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         action="store_true",
         help=strings["best_effort"],
     )
+    parser.add_argument(
+        "--init-config",
+        nargs="?",
+        const="skillfmt.toml",
+        metavar="PATH",
+        help=strings["init_config"],
+    )
+    parser.add_argument("--force", action="store_true", help=strings["force"])
     parser.add_argument("-q", "--quiet", action="store_true", help=strings["quiet"])
     parser.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
     parser.add_argument("-h", "--help", action="help", help=strings["help"])
@@ -187,12 +211,56 @@ def _write_atomic(path: Path, text: str) -> None:
         raise
 
 
+def _init_config(target: str, force: bool, lang: str) -> int:
+    content = render_template(lang)
+    if target == "-":
+        sys.stdout.write(content)
+        return 0
+    path = Path(target)
+    if path.exists() and not force:
+        print(f"skillfmt: {tr(lang, 'config_exists').format(path=path)}", file=sys.stderr)
+        return 2
+    try:
+        _write_atomic(path, content)
+    except OSError as exc:
+        print(f"skillfmt: {exc}", file=sys.stderr)
+        return 2
+    print(tr(lang, "config_written").format(path=path))
+    return 0
+
+
+def _expand_inputs(raw_paths: list[str], lang: str) -> tuple[list[Path], bool]:
+    paths: list[Path] = []
+    failed = False
+    for raw in raw_paths:
+        path = Path(raw)
+        if not path.is_dir():
+            paths.append(path)
+            continue
+        found = sorted(
+            {*path.rglob("*.il"), *path.rglob("*.ils")},
+            key=lambda item: str(item),
+        )
+        if not found:
+            print(f"{path}: {tr(lang, 'no_skill_files')}", file=sys.stderr)
+            failed = True
+        paths.extend(found)
+    return paths, failed
+
+
 def _print_warnings(path: str, warnings: list[str], quiet: bool, lang: str) -> None:
     if quiet:
         return
     label = tr(lang, "warning_label")
     for warning in warnings:
         print(f"{path}: {label}: {warning}", file=sys.stderr)
+
+
+def _print_verbose(args: argparse.Namespace, path: str, changed: bool, lang: str) -> None:
+    if not args.verbose:
+        return
+    key = "verbose_changed" if changed else "verbose_unchanged"
+    print(tr(lang, key).format(path=path), file=sys.stderr)
 
 
 def _reconfigure_stdio() -> None:
@@ -231,21 +299,58 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(arguments)
     lang = "zh" if args.zh else "en" if args.en else detect_language()
     if args.only is not None and args.skip is not None:
-        parser.error("--only and --skip are mutually exclusive")
+        parser.error(tr(lang, "err_only_skip"))
     if args.strict and args.best_effort:
-        parser.error("--strict and --best-effort are mutually exclusive")
+        parser.error(tr(lang, "err_strict_best_effort"))
+    if args.quiet and args.verbose:
+        parser.error(tr(lang, "err_quiet_verbose"))
     if args.write and (args.check or args.diff):
-        parser.error("--write cannot be combined with --check or --diff")
+        parser.error(tr(lang, "err_write_conflict"))
+
+    if args.init_config is not None:
+        formatting = (
+            args.paths
+            or args.write
+            or args.check
+            or args.diff
+            or args.lines
+            or args.line_width is not None
+            or args.base_indent is not None
+            or args.stdin_path
+            or args.only is not None
+            or args.skip is not None
+            or args.config is not None
+            or args.strict
+            or args.best_effort
+        )
+        if formatting:
+            parser.error(tr(lang, "err_init_config_conflict"))
+        return _init_config(args.init_config, args.force, lang)
+    if args.force:
+        parser.error(tr(lang, "err_force_without_init"))
 
     stdin_mode = not args.paths or args.paths == ["-"]
+    if "-" in args.paths and len(args.paths) > 1:
+        parser.error(tr(lang, "err_dash_mixed"))
     if args.stdin_path and not stdin_mode:
-        parser.error("--stdin-path is only valid with stdin")
+        parser.error(tr(lang, "err_stdin_path"))
     if args.write and stdin_mode:
-        parser.error("--write cannot be used with stdin")
+        parser.error(tr(lang, "err_write_stdin"))
     if args.lines and len(args.paths) > 1:
-        parser.error("--lines accepts only one input file")
-    if not stdin_mode and not (args.write or args.check or args.diff) and len(args.paths) != 1:
-        parser.error("multiple files require --write, --check or --diff")
+        parser.error(tr(lang, "err_lines_one_file"))
+    if args.lines and any(Path(raw).is_dir() for raw in args.paths):
+        parser.error(tr(lang, "err_lines_one_file"))
+
+    scan_failed = False
+    paths: list[Path] = []
+    if not stdin_mode:
+        paths, scan_failed = _expand_inputs(args.paths, lang)
+        if not paths and scan_failed:
+            return 2
+        if args.lines and len(paths) != 1:
+            parser.error(tr(lang, "err_lines_one_file"))
+        if not (args.write or args.check or args.diff) and len(paths) != 1:
+            parser.error(tr(lang, "err_multiple_need_action"))
 
     start = Path(args.stdin_path).parent if args.stdin_path else Path.cwd()
     try:
@@ -253,6 +358,11 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         print(f"skillfmt: {exc}", file=sys.stderr)
         return 2
+    if args.verbose:
+        if options.config_path:
+            print(tr(lang, "verbose_config").format(path=options.config_path), file=sys.stderr)
+        else:
+            print(tr(lang, "verbose_no_config"), file=sys.stderr)
 
     if stdin_mode:
         raw = sys.stdin.buffer.read()
@@ -273,22 +383,24 @@ def main(argv: list[str] | None = None) -> int:
         _print_warnings("stdin", result.warnings, args.quiet, lang)
         if args.diff:
             diff = _diff("stdin", text, result.text)
+            _print_verbose(args, "stdin", result.text != text, lang)
             if diff:
                 sys.stdout.write(diff)
                 return 1
             return 0
         if args.check:
+            _print_verbose(args, "stdin", result.text != text, lang)
             if result.text != text:
                 print("stdin: " + tr(lang, "would_reformat"))
                 return 1
             return 0
         sys.stdout.write(result.text)
+        _print_verbose(args, "stdin", result.text != text, lang)
         return 0
 
-    failures = 0
+    failures = 1 if scan_failed else 0
     changed = 0
-    for raw_path in args.paths:
-        path = Path(raw_path)
+    for path in paths:
         try:
             raw = path.read_bytes()
             text = raw.decode("utf-8-sig")
@@ -304,6 +416,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         _print_warnings(str(path), result.warnings, args.quiet, lang)
         if result.text == text:
+            _print_verbose(args, str(path), False, lang)
             continue
         changed += 1
         if args.write:
@@ -312,12 +425,14 @@ def main(argv: list[str] | None = None) -> int:
             except OSError as exc:
                 print(f"{path}: {exc}", file=sys.stderr)
                 failures = 1
+                continue
         elif args.diff:
             sys.stdout.write(_diff(str(path), text, result.text))
         elif args.check:
             print(f"{path}: {tr(lang, 'would_reformat')}")
         else:
             sys.stdout.write(result.text)
+        _print_verbose(args, str(path), True, lang)
 
     if failures:
         return 2
