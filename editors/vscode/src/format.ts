@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 
 export const MIN_CLI_VERSION = "0.1.0";
+export const TOOL_NAME = "skfmt";
+export const CONFIG_SECTION = TOOL_NAME;
 
 export interface FormatOptions {
   executable: string;
@@ -99,7 +101,7 @@ export function runCommand(
     child.on("close", (code) => finish(code ?? 2));
     timer = setTimeout(() => {
       child.kill();
-      reject(new Error(`skill-formatter timed out after ${timeoutMs} ms`));
+      reject(new Error(`${TOOL_NAME} timed out after ${timeoutMs} ms`));
     }, timeoutMs);
     child.stdin.end(text);
   });

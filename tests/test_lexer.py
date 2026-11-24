@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from skill_formatter.lexer import lex
+from skfmt.lexer import lex
 
 
 def kinds(source: str) -> list[str]:

@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import {
+  CONFIG_SECTION,
   type FormatOptions,
   MIN_CLI_VERSION,
+  TOOL_NAME,
   buildArgs,
   changedSpan,
   containsSpan,
@@ -32,9 +34,9 @@ function cliVersion(options: FormatOptions): Promise<string | null> {
 }
 
 function configFor(document: vscode.TextDocument): FormatOptions {
-  const config = vscode.workspace.getConfiguration("skillFormatter", document.uri);
+  const config = vscode.workspace.getConfiguration(CONFIG_SECTION, document.uri);
   return {
-    executable: config.get<string>("executablePath", "skill-formatter"),
+    executable: config.get<string>("executablePath", TOOL_NAME),
     configPath: config.get<string>("configPath", "") || undefined,
     extraArgs: config.get<string[]>("extraArgs", []),
     stdinPath: document.uri.scheme === "file" ? document.uri.fsPath : undefined,
@@ -79,14 +81,14 @@ async function formatDocument(
   if (version === null) {
     output.appendLine(`cannot determine version: ${options.executable} --version`);
     vscode.window.showErrorMessage(
-      "skill-formatter: cannot determine CLI version; install or update the executable",
+      `${TOOL_NAME}: cannot determine CLI version; install or update the executable`,
     );
     return [];
   }
   if (!versionAtLeast(version, MIN_CLI_VERSION)) {
-    output.appendLine(`skill-formatter ${version} is older than required ${MIN_CLI_VERSION}`);
+    output.appendLine(`${TOOL_NAME} ${version} is older than required ${MIN_CLI_VERSION}`);
     vscode.window.showErrorMessage(
-      `skill-formatter ${version} is too old; requires >= ${MIN_CLI_VERSION}. Run: uv tool install --force <skill-formatter-repo>`,
+      `${TOOL_NAME} ${version} is too old; requires >= ${MIN_CLI_VERSION}. Run: uv tool install --force <repository>`,
     );
     return [];
   }
@@ -100,7 +102,7 @@ async function formatDocument(
       output.appendLine(result.stderr.trimEnd());
     }
     if (result.code !== 0) {
-      vscode.window.showErrorMessage("skill-formatter: formatting failed; document left unchanged");
+      vscode.window.showErrorMessage(`${TOOL_NAME}: formatting failed; document left unchanged`);
       return [];
     }
     if (range) {
@@ -109,10 +111,10 @@ async function formatDocument(
       if (changed && !containsSpan(bounds, changed)) {
         output.appendLine(`command: ${options.executable} ${buildArgs(options).join(" ")}`);
         output.appendLine(
-          `skill-formatter changed text outside lines ${options.lines}; edit refused`,
+          `${TOOL_NAME} changed text outside lines ${options.lines}; edit refused`,
         );
         vscode.window.showErrorMessage(
-          "skill-formatter: formatter changed text outside the selection; update the executable and retry",
+          `${TOOL_NAME}: formatter changed text outside the selection; update the executable and retry`,
         );
         return [];
       }
@@ -130,7 +132,7 @@ async function formatDocument(
   } catch (error) {
     output.appendLine(String(error));
     vscode.window.showErrorMessage(
-      "skill-formatter: cannot run executable; install it with `uv tool install .` from the skill-formatter repository",
+      `${TOOL_NAME}: cannot run executable; install it with \`uv tool install .\` from this repository`,
     );
     return [];
   }
@@ -148,7 +150,7 @@ export function activate(context: vscode.ExtensionContext): void {
       provider.dispose();
     }
     providers = [];
-    const config = vscode.workspace.getConfiguration("skillFormatter");
+    const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
     const enableRange = config.get<boolean>("enableRangeFormatting", true);
     providers.push(
       vscode.languages.registerDocumentFormattingEditProvider(documentSelector, {
@@ -170,11 +172,11 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     { dispose: () => providers.forEach((provider) => provider.dispose()) },
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration("skillFormatter.enableRangeFormatting")) {
+      if (event.affectsConfiguration("skfmt.enableRangeFormatting")) {
         registerProviders();
       }
     }),
-    vscode.commands.registerCommand("skillFormatter.formatDocument", async () => {
+    vscode.commands.registerCommand(`${TOOL_NAME}.formatDocument`, async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -188,17 +190,17 @@ export function activate(context: vscode.ExtensionContext): void {
         });
       }
     }),
-    vscode.commands.registerCommand("skillFormatter.formatSelection", async () => {
+    vscode.commands.registerCommand(`${TOOL_NAME}.formatSelection`, async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
       }
       const enabled = vscode.workspace
-        .getConfiguration("skillFormatter", editor.document.uri)
+        .getConfiguration(CONFIG_SECTION, editor.document.uri)
         .get<boolean>("enableRangeFormatting", true);
       if (!enabled) {
         vscode.window.showInformationMessage(
-          "skill-formatter: Format Selection is disabled by skillFormatter.enableRangeFormatting",
+          `${TOOL_NAME}: Format Selection is disabled by ${CONFIG_SECTION}.enableRangeFormatting`,
         );
         return;
       }

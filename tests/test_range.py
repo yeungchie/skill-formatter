@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from skill_formatter import CATEGORIES, Options, format_range
-from skill_formatter.formatter import FormatError
+from skfmt import CATEGORIES, Options, format_range
+from skfmt.formatter import FormatError
 
 SOURCE = """useNamespace("x")
 procedure(foo(a "t")

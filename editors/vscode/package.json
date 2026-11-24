@@ -1,7 +1,7 @@
 {
-  "name": "skill-formatter",
+  "name": "skfmt",
   "displayName": "SKILL Formatter",
-  "description": "Format Cadence SKILL source with skill-formatter.",
+  "description": "Format Cadence SKILL source with skfmt.",
   "version": "0.1.0",
   "publisher": "YEUNGCHIE",
   "author": "YEUNGCHIE",
@@ -22,39 +22,46 @@
     ],
     "commands": [
       {
-        "command": "skillFormatter.formatDocument",
-        "title": "Skillfmt: Format Document"
+        "command": "skfmt.formatDocument",
+        "title": "Skfmt: Format Document"
       },
       {
-        "command": "skillFormatter.formatSelection",
-        "title": "Skillfmt: Format Selection"
+        "command": "skfmt.formatSelection",
+        "title": "Skfmt: Format Selection"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "skfmt.formatSelection",
+        "key": "shift+alt+f",
+        "when": "editorTextFocus && editorHasSelection && editorLangId == skill"
       }
     ],
     "configuration": {
       "title": "SKILL Formatter",
       "properties": {
-        "skillFormatter.executablePath": {
+        "skfmt.executablePath": {
           "type": "string",
-          "default": "skill-formatter",
-          "description": "Path to the skill-formatter executable."
+          "default": "skfmt",
+          "description": "Path to the skfmt executable."
         },
-        "skillFormatter.configPath": {
+        "skfmt.configPath": {
           "type": "string",
           "default": "",
-          "description": "Optional path to skill-formatter.toml."
+          "description": "Optional path to skfmt.toml."
         },
-        "skillFormatter.extraArgs": {
+        "skfmt.extraArgs": {
           "type": "array",
           "items": { "type": "string" },
           "default": [],
-          "description": "Extra arguments passed to skill-formatter."
+          "description": "Extra arguments passed to skfmt."
         },
-        "skillFormatter.timeoutMs": {
+        "skfmt.timeoutMs": {
           "type": "number",
           "default": 10000,
           "description": "Formatter timeout in milliseconds."
         },
-        "skillFormatter.enableRangeFormatting": {
+        "skfmt.enableRangeFormatting": {
           "type": "boolean",
           "default": true,
           "description": "Enable Format Selection."

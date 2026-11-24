@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from skill_formatter import format_source
+from skfmt import format_source
 
 FORMS = {
     "c-call": ("foo(a b)", "foo(a b)\n"),

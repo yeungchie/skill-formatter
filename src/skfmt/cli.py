@@ -1,4 +1,4 @@
-"""Command line interface for skill-formatter."""
+"""Command line interface for skfmt."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ from .config import (
 from .formatter import FormatError, FormatResult, format_range, format_source
 from .i18n import TEXTS, detect_language
 from .i18n import text as tr
+from .identity import CONFIG_NAME, TOOL_NAME
 from .options import CATEGORIES, Options
 
 
@@ -141,7 +142,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     common.add_argument("-v", "--verbose", action="store_true", help=strings["verbose"])
 
     parser = LocalizedParser(
-        prog="skill-formatter",
+        prog=TOOL_NAME,
         description=strings["description"],
         formatter_class=LocalizedFormatter,
         add_help=False,
@@ -149,7 +150,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"skill-formatter {__version__}",
+        version=f"{TOOL_NAME} {__version__}",
         help=strings["version"],
     )
     add_help_option(parser)
@@ -310,7 +311,7 @@ def _format_text(text: str, args: argparse.Namespace, options: Options) -> Forma
 
 def _write_atomic(path: Path, text: str) -> None:
     directory = path.parent
-    fd, tmp_name = tempfile.mkstemp(prefix=".skill-formatter-", dir=directory)
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{TOOL_NAME}-", dir=directory)
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
@@ -391,7 +392,7 @@ def _active_config_path(raw: Path | None, cwd: Path, create: bool) -> Path | Non
     found = find_config(cwd)
     if found is not None:
         return found
-    return cwd / "skill-formatter.toml" if create else None
+    return cwd / CONFIG_NAME if create else None
 
 
 def _print_config_template(lang: str) -> None:
@@ -437,7 +438,7 @@ def _run_config(args: argparse.Namespace, lang: str) -> int:
             print(tr(lang, "config_updated").format(path=path.resolve()))
             return 0
     except (ConfigError, OSError) as exc:
-        print(f"skill-formatter: {exc}", file=sys.stderr)
+        print(f"{TOOL_NAME}: {exc}", file=sys.stderr)
         return 2
     return 2
 
@@ -497,7 +498,7 @@ def _main(arguments: list[str]) -> int:
     try:
         options = load_config(args.config, start)
     except ConfigError as exc:
-        print(f"skill-formatter: {exc}", file=sys.stderr)
+        print(f"{TOOL_NAME}: {exc}", file=sys.stderr)
         return 2
     if args.verbose:
         if options.config_path:
@@ -556,7 +557,12 @@ def _main(arguments: list[str]) -> int:
             failures = 1
             continue
         _print_warnings(str(path), result.warnings, args.quiet, lang)
-        if result.text == text:
+        changed_now = result.text != text
+        if args.command == "format" and not write:
+            sys.stdout.write(result.text)
+            _print_verbose(args, str(path), changed_now, lang)
+            continue
+        if not changed_now:
             _print_verbose(args, str(path), False, lang)
             continue
         changed += 1
@@ -571,8 +577,6 @@ def _main(arguments: list[str]) -> int:
             sys.stdout.write(_diff(str(path), text, result.text))
         elif args.command == "check":
             print(f"{path}: {tr(lang, 'would_reformat')}")
-        else:
-            sys.stdout.write(result.text)
         _print_verbose(args, str(path), True, lang)
 
     if failures:
@@ -589,7 +593,7 @@ def main(argv: list[str] | None = None) -> int:
         return _main(arguments)
     except KeyboardInterrupt:
         lang = _prescan_language(arguments) or detect_language()
-        print(f"skill-formatter: {tr(lang, 'interrupted')}", file=sys.stderr)
+        print(f"{TOOL_NAME}: {tr(lang, 'interrupted')}", file=sys.stderr)
         return 130
 
 

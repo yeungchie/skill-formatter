@@ -25,17 +25,31 @@ def test_vscode_manifest_declares_skill_without_file_associations() -> None:
     )
     contributes = manifest["contributes"]
     languages = contributes["languages"]
-    assert manifest["name"] == "skill-formatter"
+    assert manifest["name"] == "skfmt"
     assert manifest["publisher"] == "YEUNGCHIE"
     assert manifest["activationEvents"] == ["onStartupFinished"]
     assert len(languages) == 1
     assert languages[0]["id"] == "skill"
     assert "extensions" not in languages[0]
     assert "configurationDefaults" not in contributes
-    assert "skillFormatter.languages" not in contributes["configuration"]["properties"]
+    assert "skfmt.languages" not in contributes["configuration"]["properties"]
     assert ".il" not in json.dumps(contributes)
     assert ".ils" not in json.dumps(contributes)
     assert (ROOT / "editors" / "vscode" / "language-configuration.json").is_file()
+
+
+def test_vscode_selection_keybinding_is_scoped() -> None:
+    manifest = json.loads(
+        (ROOT / "editors" / "vscode" / "package.json").read_text(encoding="utf-8")
+    )
+    bindings = manifest["contributes"]["keybindings"]
+    assert bindings == [
+        {
+            "command": "skfmt.formatSelection",
+            "key": "shift+alt+f",
+            "when": "editorTextFocus && editorHasSelection && editorLangId == skill",
+        }
+    ]
 
 
 def test_vim_headless_smoke() -> None:

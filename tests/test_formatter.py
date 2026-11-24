@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from skill_formatter import CATEGORIES, Options, format_source
-from skill_formatter.config import load_config
+from skfmt import CATEGORIES, Options, format_source
+from skfmt.config import load_config
 
 
 @pytest.mark.parametrize(
@@ -50,7 +50,7 @@ def test_hanging_controls_head_line() -> None:
 
 
 def test_config_hanging_changes_layout(tmp_path: Path) -> None:
-    config = tmp_path / "skill-formatter.toml"
+    config = tmp_path / "skfmt.toml"
     config.write_text("[rules]\nhanging = []\n", encoding="utf-8")
     result = format_source("let((len i)\nlen = 1\n)", load_config(config)).text
     assert result == "let(\n    (len i)\n    len = 1\n)\n"
@@ -108,7 +108,7 @@ def test_idempotent() -> None:
 
 
 def test_wrapping_off_keeps_line_breaks() -> None:
-    from skill_formatter import CATEGORIES, Options
+    from skfmt import CATEGORIES, Options
 
     source = 'procedure(foo(a "t")\nlet((x)\nx = 1\n)\n)\n'
     options = Options(categories=frozenset(CATEGORIES) - {"wrapping"})

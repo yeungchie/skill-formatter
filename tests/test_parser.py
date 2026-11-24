@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from skill_formatter.formatter import _canonical_without_opaque, _parse
+from skfmt.formatter import _canonical_without_opaque, _parse
 
 
 def canon(source: str) -> str:

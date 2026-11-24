@@ -1,4 +1,4 @@
-augroup skillfmt_filetype
+augroup skfmt_filetype
   autocmd!
   autocmd BufRead,BufNewFile *.il,*.ils setfiletype skill
 augroup END

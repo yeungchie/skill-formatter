@@ -135,8 +135,7 @@ wheels = [
 ]
 
 [[package]]
-name = "skill-formatter"
-version = "0.1.0"
+name = "skfmt"
 source = { editable = "." }
 dependencies = [
     { name = "rich" },

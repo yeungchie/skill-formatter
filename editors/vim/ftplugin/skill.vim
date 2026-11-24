@@ -1,7 +1,7 @@
 setlocal commentstring=;%s
 
-let s:exe = get(g:, 'skillfmt_executable', 'skill-formatter')
+let s:exe = get(g:, 'skfmt_executable', 'skfmt')
 if executable(s:exe)
-  call skillfmt#Setup()
+  call skfmt#Setup()
 endif
 unlet s:exe

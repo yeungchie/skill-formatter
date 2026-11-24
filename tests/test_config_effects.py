@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from skill_formatter import format_source
-from skill_formatter.config import load_config
+from skfmt import format_source
+from skfmt.config import load_config
 
 
 def _config(tmp_path: Path, text: str):
-    path = tmp_path / "skill-formatter.toml"
+    path = tmp_path / "skfmt.toml"
     path.write_text(text, encoding="utf-8")
     return load_config(path)
 

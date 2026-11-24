@@ -5,7 +5,7 @@ import re
 import tomllib
 from pathlib import Path
 
-from skill_formatter import __version__
+from skfmt import DIST_NAME, TOOL_NAME, __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -18,9 +18,11 @@ def _version_tuple(version: str) -> tuple[int, int, int]:
 def test_version_declarations_match() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     vscode = json.loads((ROOT / "editors" / "vscode" / "package.json").read_text(encoding="utf-8"))
-    assert pyproject["project"]["name"] == "skill-formatter"
-    assert pyproject["project"]["scripts"] == {"skill-formatter": "skill_formatter.cli:main"}
-    assert pyproject["project"]["version"] == __version__
+    assert pyproject["project"]["name"] == DIST_NAME
+    assert pyproject["project"]["scripts"] == {TOOL_NAME: "skfmt.cli:main"}
+    assert pyproject["project"]["dynamic"] == ["version"]
+    assert pyproject["tool"]["hatch"]["version"]["path"] == "src/skfmt/__init__.py"
+    assert pyproject["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] == ["src/skfmt"]
     assert vscode["version"] == __version__
 
 
@@ -36,7 +38,7 @@ def test_author_metadata_matches_publisher() -> None:
 
 def test_editors_require_available_cli_version() -> None:
     vscode = (ROOT / "editors" / "vscode" / "src" / "format.ts").read_text(encoding="utf-8")
-    vim = (ROOT / "editors" / "vim" / "autoload" / "skillfmt.vim").read_text(encoding="utf-8")
+    vim = (ROOT / "editors" / "vim" / "autoload" / "skfmt.vim").read_text(encoding="utf-8")
     vscode_match = re.search(r'MIN_CLI_VERSION = "(\d+\.\d+\.\d+)"', vscode)
     vim_match = re.search(r"let s:min_version = '(\d+\.\d+\.\d+)'", vim)
     assert vscode_match is not None

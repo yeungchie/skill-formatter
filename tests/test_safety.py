@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from skill_formatter import Options, format_source
-from skill_formatter.formatter import FormatError
+from skfmt import Options, format_source
+from skfmt.formatter import FormatError
 
 
 def test_operator_head_is_left_byte_identical() -> None:

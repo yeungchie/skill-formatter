@@ -8,6 +8,8 @@ import os
 import sys
 import warnings
 
+from .identity import CONFIG_NAME, LANG_ENV, TOOL_NAME
+
 TEXTS: dict[str, dict[str, str]] = {
     "en": {
         "usage": "Usage: ",
@@ -42,19 +44,19 @@ TEXTS: dict[str, dict[str, str]] = {
             "Long lists put each element on its own line."
         ),
         "base_indent": "Base indentation for selected fragments or the outermost form.",
-        "stdin_path": "Path stdin represents, used to locate skill-formatter.toml.",
+        "stdin_path": "Path stdin represents, used to locate {config}.",
         "only": "Only the given categories; required prerequisites are added.",
         "skip": (
             "Skip categories: eol, blank-lines, indent, spacing, wrapping, comments. "
             "Skipping wrapping, indent, spacing or comments keeps original line breaks."
         ),
-        "config": "Read settings from PATH instead of searching for skill-formatter.toml.",
+        "config": "Read settings from PATH instead of searching for {config}.",
         "config_file": "Config file to read or update.",
         "strict": "Treat unsupported-syntax warnings as errors.",
         "best_effort": "Use conservative layout for unsupported syntax.",
         "quiet": "Do not print unsupported-syntax warnings.",
         "verbose": "Print config source and per-input status to stderr.",
-        "config_template": "print a commented skill-formatter.toml template",
+        "config_template": "print a commented {config} template",
         "config_get": "print the effective value of KEY",
         "config_set": "write KEY VALUE to the active config file; VALUE may be 'unset'",
         "config_trace": "print the config file in effect",
@@ -118,16 +120,16 @@ TEXTS: dict[str, dict[str, str]] = {
             "整行输出宽度上限，含缩进（默认 150，最小 20）。超长 list 的每个元素独占一行。"
         ),
         "base_indent": "选区片段或最外层 form 的起始缩进。",
-        "stdin_path": "stdin 对应的文件路径，用于查找 skill-formatter.toml。",
+        "stdin_path": "stdin 对应的文件路径，用于查找 {config}。",
         "only": "只启用给定分类；会自动补齐依赖分类。",
         "skip": "跳过：eol/blank-lines/indent/spacing/wrapping/comments。",
-        "config": "从 PATH 读取配置，不再向上查找 skill-formatter.toml。",
+        "config": "从 PATH 读取配置，不再向上查找 {config}。",
         "config_file": "要读取或写入的配置文件。",
         "strict": "把未支持语法警告视为错误。",
         "best_effort": "未确认语法使用保守空白布局。",
         "quiet": "不输出未支持语法警告。",
         "verbose": "向 stderr 输出配置来源与每个输入的状态。",
-        "config_template": "打印带注释的 skill-formatter.toml 模板",
+        "config_template": "打印带注释的 {config} 模板",
         "config_get": "打印 KEY 的生效值",
         "config_set": "把 KEY VALUE 写入当前配置文件；VALUE 可为 'unset'",
         "config_trace": "打印当前生效的配置文件",
@@ -205,7 +207,7 @@ def _os_locale() -> str | None:
 
 
 def detect_language() -> str:
-    override = os.environ.get("SKILL_FORMATTER_LANG", "").strip().lower()
+    override = os.environ.get(LANG_ENV, "").strip().lower()
     if override.startswith("zh"):
         return "zh"
     if override.startswith("en"):
@@ -219,5 +221,14 @@ def detect_language() -> str:
     return "en"
 
 
+class _Names(dict[str, str]):
+    """Leave unknown ``{placeholders}`` untouched for later .format() calls."""
+
+    def __missing__(self, key: str) -> str:
+        return "{" + key + "}"
+
+
 def text(lang: str, key: str) -> str:
-    return TEXTS.get(lang, TEXTS["en"])[key]
+    raw = TEXTS.get(lang, TEXTS["en"])[key]
+    names = _Names(tool=TOOL_NAME, config=CONFIG_NAME, env=LANG_ENV)
+    return raw.format_map(names)

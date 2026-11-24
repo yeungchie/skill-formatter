@@ -1,4 +1,4 @@
-" Autoload functions for skillfmt.vim.  Vim 7.4 compatible.
+" Autoload functions for skfmt.vim.  Vim 7.4 compatible.
 
 if v:version < 704
   finish
@@ -7,12 +7,13 @@ endif
 let s:save_cpo = &cpo
 set cpo&vim
 
+let s:tool = 'skfmt'
 let s:min_version = '0.1.0'
 let s:version_ok = -1
 let s:version_exe = ''
 
 function! s:Executable() abort
-  return get(g:, 'skillfmt_executable', 'skill-formatter')
+  return get(g:, 'skfmt_executable', s:tool)
 endfunction
 
 function! s:ShowMessage(message) abort
@@ -49,7 +50,7 @@ function! s:ReadVersion() abort
   return matchstr(l:output, '\d\+\.\d\+\.\d\+')
 endfunction
 
-function! skillfmt#VersionOk() abort
+function! skfmt#VersionOk() abort
   let l:exe = s:Executable()
   if s:version_exe !=# l:exe
     let s:version_ok = -1
@@ -61,53 +62,53 @@ function! skillfmt#VersionOk() abort
   let l:found = s:ReadVersion()
   if empty(l:found)
     let s:version_ok = 0
-    call s:ShowMessage('skill-formatter: cannot determine version; install or update the executable')
+    call s:ShowMessage(s:tool . ': cannot determine version; install or update the executable')
     return 0
   endif
   if !s:VersionAtLeast(l:found, s:min_version)
     let s:version_ok = 0
     call s:ShowMessage(
-          \ 'skill-formatter ' . l:found . ' is too old; requires >= ' . s:min_version
-          \ . ' (upgrade, then :SkillfmtRefresh)')
+          \ s:tool . ' ' . l:found . ' is too old; requires >= ' . s:min_version
+          \ . ' (upgrade, then :SkfmtRefresh)')
     return 0
   endif
   let s:version_ok = 1
   return 1
 endfunction
 
-function! skillfmt#Version() abort
+function! skfmt#Version() abort
   let l:found = s:ReadVersion()
   if empty(l:found)
-    echomsg 'skill-formatter: version unknown'
+    echomsg s:tool . ': version unknown'
   else
-    echomsg 'skill-formatter ' . l:found . ' (required >= ' . s:min_version . ')'
+    echomsg s:tool . ' ' . l:found . ' (required >= ' . s:min_version . ')'
   endif
 endfunction
 
-function! skillfmt#FormatPrg() abort
+function! skfmt#FormatPrg() abort
   let l:cmd = shellescape(s:Executable()) . ' format'
-  let l:extra = get(g:, 'skillfmt_args', '')
+  let l:extra = get(g:, 'skfmt_args', '')
   if !empty(l:extra)
     let l:cmd .= ' ' . l:extra
   endif
   return l:cmd
 endfunction
 
-function! skillfmt#Refresh() abort
+function! skfmt#Refresh() abort
   let s:version_ok = -1
-  call skillfmt#Setup()
+  call skfmt#Setup()
 endfunction
 
-function! skillfmt#Setup() abort
-  if skillfmt#VersionOk()
-    let &l:formatprg = skillfmt#FormatPrg()
+function! skfmt#Setup() abort
+  if skfmt#VersionOk()
+    let &l:formatprg = skfmt#FormatPrg()
   else
     let &l:formatprg = ''
   endif
 endfunction
 
 function! s:ShowError(file) abort
-  let l:lines = filereadable(a:file) ? readfile(a:file) : ['skill-formatter failed']
+  let l:lines = filereadable(a:file) ? readfile(a:file) : [s:tool . ' failed']
   echohl ErrorMsg
   for l:line in l:lines
     echomsg l:line
@@ -130,15 +131,15 @@ function! s:Replace(lines) abort
   call winrestview(l:view)
 endfunction
 
-function! skillfmt#Format(all, first, last) abort
+function! skfmt#Format(all, first, last) abort
   let l:exe = s:Executable()
   if !executable(l:exe)
     echohl ErrorMsg
-    echomsg 'skill-formatter: executable not found: ' . l:exe
+    echomsg s:tool . ': executable not found: ' . l:exe
     echohl None
     return
   endif
-  if !skillfmt#VersionOk()
+  if !skfmt#VersionOk()
     return
   endif
 
@@ -148,7 +149,7 @@ function! skillfmt#Format(all, first, last) abort
   try
     call writefile(getline(1, '$'), l:in_file)
     let l:cmd = shellescape(l:exe) . ' format'
-    let l:extra = get(g:, 'skillfmt_args', '')
+    let l:extra = get(g:, 'skfmt_args', '')
     if !empty(l:extra)
       let l:cmd .= ' ' . l:extra
     endif
@@ -169,7 +170,7 @@ function! skillfmt#Format(all, first, last) abort
     endif
     if !filereadable(l:out_file)
       echohl ErrorMsg
-      echomsg 'skill-formatter: no output produced'
+      echomsg s:tool . ': no output produced'
       echohl None
       return
     endif
@@ -183,12 +184,12 @@ function! skillfmt#Format(all, first, last) abort
   endtry
 endfunction
 
-function! skillfmt#FormatAll() abort
-  call skillfmt#Format(1, 1, line('$'))
+function! skfmt#FormatAll() abort
+  call skfmt#Format(1, 1, line('$'))
 endfunction
 
-function! skillfmt#FormatRange(first, last) abort
-  call skillfmt#Format(0, a:first, a:last)
+function! skfmt#FormatRange(first, last) abort
+  call skfmt#Format(0, a:first, a:last)
 endfunction
 
 let &cpo = s:save_cpo

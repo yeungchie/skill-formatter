@@ -1,17 +1,17 @@
 # SKILL Formatter for Vim
 
-Vim 7.4+ 的 `skill-formatter` 格式化插件。插件只调用外部 `skill-formatter`，自身不解析 SKILL。
+Vim 7.4+ 的 `skfmt` 格式化插件。插件只调用外部 `skfmt`，自身不解析 SKILL。
 
-## 1. 先安装 skill-formatter
+## 1. 先安装 skfmt
 
 在 `skill-formatter` 仓库根目录执行：
 
 ```sh
 uv tool install .
-skill-formatter --version
+skfmt --version
 ```
 
-确认 `skill-formatter` 在 `PATH` 上。若使用其他安装方式，只要 `skill-formatter` 可执行即可。
+确认 `skfmt` 在 `PATH` 上。若使用其他安装方式，只要 `skfmt` 可执行即可。
 
 ## 2. 安装插件
 
@@ -41,19 +41,19 @@ vim -Nu NONE -c 'helptags ~/vimfiles/doc' -c 'q'
 复制后至少应存在：
 
 ```text
-plugin/skillfmt.vim
-autoload/skillfmt.vim
+plugin/skfmt.vim
+autoload/skfmt.vim
 ftplugin/skill.vim
 ftdetect/skill.vim
-doc/skillfmt.txt
+doc/skfmt.txt
 ```
 
 ### Vim 8+：package
 
 ```sh
 mkdir -p ~/.vim/pack/plugins/start
-ln -s /path/to/skill-formatter/editors/vim ~/.vim/pack/plugins/start/skill-formatter
-vim -Nu NONE -c 'helptags ~/.vim/pack/plugins/start/skill-formatter/doc' -c 'q'
+ln -s /path/to/skill-formatter/editors/vim ~/.vim/pack/plugins/start/skfmt
+vim -Nu NONE -c 'helptags ~/.vim/pack/plugins/start/skfmt/doc' -c 'q'
 ```
 
 Windows 若不能创建符号链接，改用上面的手动复制。
@@ -62,7 +62,7 @@ Windows 若不能创建符号链接，改用上面的手动复制。
 
 ```sh
 mkdir -p ~/.vim/bundle
-ln -s /path/to/skill-formatter/editors/vim ~/.vim/bundle/skill-formatter
+ln -s /path/to/skill-formatter/editors/vim ~/.vim/bundle/skfmt
 ```
 
 ### vim-plug
@@ -79,10 +79,10 @@ Plug '/path/to/skill-formatter', {'rtp': 'editors/vim'}
 
 ```vim
 :set filetype?              " 应显示 filetype=skill
-:echo executable('skill-formatter') " 应为 1
-:command Skillfmt           " 应存在
-:SkillfmtVersion            " 应显示版本与最低要求
-:help skillfmt              " 应能打开帮助
+:echo executable('skfmt')   " 应为 1
+:command Skfmt              " 应存在
+:SkfmtVersion               " 应显示版本与最低要求
+:help skfmt                 " 应能打开帮助
 ```
 
 如果 `filetype` 不是 `skill`，检查 `ftdetect/skill.vim` 是否在运行目录中，或手动执行
@@ -93,19 +93,19 @@ Plug '/path/to/skill-formatter', {'rtp': 'editors/vim'}
 在 `.vimrc` 中设置：
 
 ```vim
-let g:skillfmt_executable = '/absolute/path/to/skill-formatter'
-let g:skillfmt_args = '--line-width 100'
+let g:skfmt_executable = '/absolute/path/to/skfmt'
+let g:skfmt_args = '--line-width 100'
 ```
 
-- `g:skillfmt_executable`：`skill-formatter` 路径；默认 `"skill-formatter"`，即从 `PATH` 查找。
-- `g:skillfmt_args`：追加给 `skill-formatter format` 的原始 shell 参数，也会进入 `formatprg`。
+- `g:skfmt_executable`：`skfmt` 路径；默认 `"skfmt"`，即从 `PATH` 查找。
+- `g:skfmt_args`：追加给 `skfmt format` 的原始 shell 参数，也会进入 `formatprg`。
 
-插件在格式化前运行 `skill-formatter --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化。
+插件在格式化前运行 `skfmt --version`，当前要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化。
 
 运行中修改这两个变量后执行：
 
 ```vim
-:SkillfmtRefresh
+:SkfmtRefresh
 ```
 
 重新生成 `formatprg`。
@@ -113,35 +113,35 @@ let g:skillfmt_args = '--line-width 100'
 ## 5. 使用
 
 ```vim
-:Skillfmt              " 格式化整个缓冲区
-:'<,'>SkillfmtRange    " 只格式化选区行（片段模式）
-:gq                    " 使用 formatprg 格式化当前段落/动作范围
-:%!skill-formatter format     " 原生过滤：整文件
-:'<,'>!skill-formatter format " 原生过滤：选区
+:Skfmt                     " 格式化整个缓冲区
+:'<,'>SkfmtRange           " 只格式化选区行（片段模式）
+:gq                        " 使用 formatprg 格式化当前段落/动作范围
+:%!skfmt format            " 原生过滤：整文件
+:'<,'>!skfmt format        " 原生过滤：选区
 ```
 
-`SkillfmtRange` 只替换选中的完整行，选区外逐字保留；片段不完整或替换后结构不成立时保持原样并输出诊断。
+`SkfmtRange` 只替换选中的完整行，选区外逐字保留；片段不完整或替换后结构不成立时保持原样并输出诊断。
 
 ## 6. Vim 7.4 注意事项
 
 - 不支持 `:packadd`、job、timer、`systemlist()` 等 Vim 8+ 特性；插件只用
   `system()`、`tempname()`、`writefile()`、`readfile()` 等 Vim 7.4 可用接口。
-- 格式化是同步的，大文件会阻塞编辑器直到 `skill-formatter` 返回。
+- 格式化是同步的，大文件会阻塞编辑器直到 `skfmt` 返回。
 - `'encoding'` 建议为 `utf-8`，否则非 ASCII 源码可能显示异常。
-- `formatprg` 只在打开文件时检测到 `skill-formatter` 可执行才设置；之后改路径请执行
-  `:SkillfmtRefresh`。
-- 升级 CLI 后执行 `:SkillfmtRefresh` 重新检测版本并生成 `formatprg`。
+- `formatprg` 只在打开文件时检测到 `skfmt` 可执行才设置；之后改路径请执行
+  `:SkfmtRefresh`。
+- 升级 CLI 后执行 `:SkfmtRefresh` 重新检测版本并生成 `formatprg`。
 
 ## 7. 排错
 
 | 现象 | 检查 |
 | --- | --- |
-| `E492: Not an editor command: Skillfmt` | `plugin/skillfmt.vim` 不在 `runtimepath`；用 `:set runtimepath?` 检查 |
-| `E117: Unknown function: skillfmt#FormatAll` | `autoload/skillfmt.vim` 未复制或运行目录不对 |
-| `skill-formatter: executable not found` | `:echo executable('skill-formatter')`；安装 CLI 或设置 `g:skillfmt_executable` |
-| `skill-formatter ... is too old` | 用 `uv tool install --force .` 升级，然后 `:SkillfmtRefresh` |
-| `formatprg` 为空 / `gq` 无效 | 打开文件时 `skill-formatter` 不在 PATH；设置 `g:skillfmt_executable` 后 `:SkillfmtRefresh` |
-| `:help skillfmt` 找不到 | 在 `doc/` 所在目录执行 `:helptags` |
+| `E492: Not an editor command: Skfmt` | `plugin/skfmt.vim` 不在 `runtimepath`；用 `:set runtimepath?` 检查 |
+| `E117: Unknown function: skfmt#FormatAll` | `autoload/skfmt.vim` 未复制或运行目录不对 |
+| `skfmt: executable not found` | `:echo executable('skfmt')`；安装 CLI 或设置 `g:skfmt_executable` |
+| `skfmt ... is too old` | 用 `uv tool install --force .` 升级，然后 `:SkfmtRefresh` |
+| `formatprg` 为空 / `gq` 无效 | 打开文件时 `skfmt` 不在 PATH；设置 `g:skfmt_executable` 后 `:SkfmtRefresh` |
+| `:help skfmt` 找不到 | 在 `doc/` 所在目录执行 `:helptags` |
 | 中文乱码 | 执行 `:set encoding?`，必要时 `:set encoding=utf-8` |
 
 ## 8. 卸载
@@ -149,11 +149,11 @@ let g:skillfmt_args = '--line-width 100'
 删除复制到 `~/.vim`（或 `~/vimfiles`）中的：
 
 ```text
-plugin/skillfmt.vim
-autoload/skillfmt.vim
+plugin/skfmt.vim
+autoload/skfmt.vim
 ftplugin/skill.vim
 ftdetect/skill.vim
-doc/skillfmt.txt
+doc/skfmt.txt
 ```
 
-如果使用 package/Pathogen/vim-plug，删除对应的 `skill-formatter` 目录或插件条目即可。
+如果使用 package/Pathogen/vim-plug，删除对应的 `skfmt` 目录或插件条目即可。
