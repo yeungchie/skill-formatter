@@ -15,7 +15,8 @@ from rich_argparse import RichHelpFormatter
 from . import __version__
 from .config import ConfigError, load_config
 from .formatter import FormatError, FormatResult, format_range, format_source
-from .i18n import TEXTS, detect_language, text
+from .i18n import TEXTS, detect_language
+from .i18n import text as tr
 from .options import CATEGORIES, Options
 
 
@@ -57,7 +58,7 @@ def _parse_width(text: str) -> int:
 
 def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     lang = lang or detect_language()
-    strings = {key: text(lang, key) for key in TEXTS[lang]}
+    strings = {key: tr(lang, key) for key in TEXTS[lang]}
 
     class LocalizedFormatter(RichHelpFormatter):
         def add_usage(self, usage, actions, groups, prefix=None):  # type: ignore[no-untyped-def]
@@ -107,6 +108,9 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         version=f"skillfmt {__version__}",
         help=strings["version"],
     )
+    language = parser.add_mutually_exclusive_group()
+    language.add_argument("--zh", action="store_true", help=strings["force_zh"])
+    language.add_argument("--en", action="store_true", help=strings["force_en"])
     parser._positionals.title = strings["positional"]
     parser._optionals.title = strings["options"]
     return parser
@@ -183,11 +187,12 @@ def _write_atomic(path: Path, text: str) -> None:
         raise
 
 
-def _print_warnings(path: str, warnings: list[str], quiet: bool) -> None:
+def _print_warnings(path: str, warnings: list[str], quiet: bool, lang: str) -> None:
     if quiet:
         return
+    label = tr(lang, "warning_label")
     for warning in warnings:
-        print(f"{path}: warning: {warning}", file=sys.stderr)
+        print(f"{path}: {label}: {warning}", file=sys.stderr)
 
 
 def _reconfigure_stdio() -> None:
@@ -208,10 +213,23 @@ def _diff(path: str, before: str, after: str) -> str:
     )
 
 
+def _prescan_language(argv: list[str]) -> str | None:
+    for arg in argv:
+        if arg == "--":
+            break
+        if arg == "--zh":
+            return "zh"
+        if arg == "--en":
+            return "en"
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     _reconfigure_stdio()
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    parser = build_parser(_prescan_language(arguments))
+    args = parser.parse_args(arguments)
+    lang = "zh" if args.zh else "en" if args.en else detect_language()
     if args.only is not None and args.skip is not None:
         parser.error("--only and --skip are mutually exclusive")
     if args.strict and args.best_effort:
@@ -252,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
             if not (args.check or args.diff):
                 sys.stdout.buffer.write(raw)
             return 2
-        _print_warnings("stdin", result.warnings, args.quiet)
+        _print_warnings("stdin", result.warnings, args.quiet, lang)
         if args.diff:
             diff = _diff("stdin", text, result.text)
             if diff:
@@ -261,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.check:
             if result.text != text:
-                print("stdin: would reformat")
+                print("stdin: " + tr(lang, "would_reformat"))
                 return 1
             return 0
         sys.stdout.write(result.text)
@@ -284,7 +302,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{path}: {exc}", file=sys.stderr)
             failures = 1
             continue
-        _print_warnings(str(path), result.warnings, args.quiet)
+        _print_warnings(str(path), result.warnings, args.quiet, lang)
         if result.text == text:
             continue
         changed += 1
@@ -297,7 +315,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.diff:
             sys.stdout.write(_diff(str(path), text, result.text))
         elif args.check:
-            print(f"{path}: would reformat")
+            print(f"{path}: {tr(lang, 'would_reformat')}")
         else:
             sys.stdout.write(result.text)
 

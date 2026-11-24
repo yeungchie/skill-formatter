@@ -31,6 +31,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "best_effort": "use conservative layout for unsupported reader syntax",
         "quiet": "suppress warnings",
         "verbose": "show more details",
+        "force_zh": "force Chinese output",
+        "force_en": "force English output",
+        "warning_label": "warning",
+        "would_reformat": "would reformat",
     },
     "zh": {
         "usage": "用法: ",
@@ -54,6 +58,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "best_effort": "未确认读取器语法使用保守布局",
         "quiet": "抑制警告",
         "verbose": "输出更多细节",
+        "force_zh": "强制中文输出",
+        "force_en": "强制英文输出",
+        "warning_label": "警告",
+        "would_reformat": "需要重新格式化",
     },
 }
 

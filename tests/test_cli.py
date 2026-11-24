@@ -33,7 +33,11 @@ def test_stdin_filter() -> None:
 
 
 def test_stdin_check() -> None:
-    result = run_cli(["--check"], 'procedure(foo(a "t")\na = 1\n)\n')
+    result = run_cli(
+        ["--check"],
+        'procedure(foo(a "t")\na = 1\n)\n',
+        env_extra={"SKILLFMT_LANG": "en"},
+    )
     assert result.returncode == 1
     assert "would reformat" in result.stdout
 
@@ -114,3 +118,26 @@ def test_help_language_auto_english_locale() -> None:
     )
     assert result.returncode == 0
     assert "Usage:" in result.stdout
+
+
+def test_forced_language_flags() -> None:
+    zh = run_cli(["--zh", "-h"], env_extra={"SKILLFMT_LANG": "en"})
+    assert zh.returncode == 0
+    assert "用法:" in zh.stdout
+    assert "强制中文输出" in zh.stdout
+    en = run_cli(["--en", "-h"], env_extra={"SKILLFMT_LANG": "zh"})
+    assert en.returncode == 0
+    assert "Usage:" in en.stdout
+    assert "force English output" in en.stdout
+
+
+def test_forced_language_flags_are_mutually_exclusive() -> None:
+    result = run_cli(["--zh", "--en", "-h"])
+    assert result.returncode == 2
+
+
+def test_forced_language_affects_check_message() -> None:
+    source = 'procedure(foo(a "t")\na = 1\n)\n'
+    result = run_cli(["--zh", "--check"], source)
+    assert result.returncode == 1
+    assert "需要重新格式化" in result.stdout
