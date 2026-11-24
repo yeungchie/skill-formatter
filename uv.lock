@@ -139,6 +139,7 @@ name = "skill-formatter"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "rich" },
     { name = "rich-argparse" },
 ]
 
@@ -150,7 +151,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "rich-argparse", specifier = ">=1.7" }]
+requires-dist = [
+    { name = "rich", specifier = ">=13.9" },
+    { name = "rich-argparse", specifier = ">=1.7" },
+]
 
 [package.metadata.requires-dev]
 dev = [

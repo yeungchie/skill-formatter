@@ -209,7 +209,7 @@ def test_help_documents_exit_status_and_language_scope_in_chinese() -> None:
 
 
 def test_config_template_is_loadable(tmp_path: Path) -> None:
-    result = run_cli(["--en", "config", "--template"])
+    result = run_cli(["--en", "config", "template"])
     assert result.returncode == 0
     assert result.stderr == ""
     target = tmp_path / "skillfmt.toml"
@@ -224,8 +224,8 @@ def test_config_template_is_loadable(tmp_path: Path) -> None:
 
 
 def test_config_template_uses_selected_language() -> None:
-    chinese = run_cli(["config", "--template", "--zh"])
-    english = run_cli(["config", "--template", "--en"])
+    chinese = run_cli(["config", "template", "--zh"])
+    english = run_cli(["config", "template", "--en"])
     assert chinese.returncode == 0
     assert english.returncode == 0
     zh_text = chinese.stdout
@@ -238,58 +238,66 @@ def test_config_template_uses_selected_language() -> None:
     assert "width = 150" in en_text
 
 
-def test_config_requires_exactly_one_action() -> None:
+def test_config_help_lists_nested_subcommands() -> None:
+    result = run_cli(["--en", "config", "-h"], env_extra={"COLUMNS": "100"})
+    assert result.returncode == 0
+    assert "{template,get,set,trace}" in result.stdout
+    assert "--config PATH" in result.stdout
+
+
+def test_config_requires_a_subcommand() -> None:
     missing = run_cli(["--en", "config"])
     assert missing.returncode == 2
-    both = run_cli(["--en", "config", "--template", "--trace"])
-    assert both.returncode == 2
+    get_without_key = run_cli(["--en", "config", "get"])
+    assert get_without_key.returncode == 2
 
 
 def test_config_rejects_extra_arguments() -> None:
-    result = run_cli(["--en", "config", "--template", "missing.il"])
+    result = run_cli(["--en", "config", "template", "missing.il"])
     assert result.returncode == 2
     assert result.stdout == ""
 
 
 def test_config_get_uses_defaults(tmp_path: Path) -> None:
-    width = run_cli(["--en", "config", "--get", "format.width"], cwd=tmp_path)
+    width = run_cli(["--en", "config", "get", "format.width"], cwd=tmp_path)
     assert width.returncode == 0
     assert width.stdout == "150\n"
-    base = run_cli(["--en", "config", "--get", "format.base_indent"], cwd=tmp_path)
+    base = run_cli(["--en", "config", "get", "format.base_indent"], cwd=tmp_path)
     assert base.stdout == "unset\n"
-    wrapping = run_cli(["--en", "config", "--get", "categories.wrapping"], cwd=tmp_path)
+    wrapping = run_cli(["--en", "config", "get", "categories.wrapping"], cwd=tmp_path)
     assert wrapping.stdout == "true\n"
-    hanging = run_cli(["--en", "config", "--get", "rules.hanging"], cwd=tmp_path)
+    hanging = run_cli(["--en", "config", "get", "rules.hanging"], cwd=tmp_path)
     assert hanging.stdout == '["let", "letseq", "letrec", "quote"]\n'
 
 
 def test_config_get_rejects_unknown_key(tmp_path: Path) -> None:
-    result = run_cli(["--en", "config", "--get", "format.nope"], cwd=tmp_path)
+    result = run_cli(["--en", "config", "get", "format.nope"], cwd=tmp_path)
     assert result.returncode == 2
     assert "unknown configuration key" in result.stderr
 
 
-def test_config_trace_reports_defaults_and_file(tmp_path: Path) -> None:
-    defaults = run_cli(["--en", "config", "--trace"], cwd=tmp_path)
+def test_config_trace_is_blank_without_file(tmp_path: Path) -> None:
+    defaults = run_cli(["--en", "config", "trace"], cwd=tmp_path)
     assert defaults.returncode == 0
-    assert defaults.stdout == "built-in defaults\n"
+    assert defaults.stdout == ""
+    assert defaults.stderr == ""
     target = tmp_path / "skillfmt.toml"
     target.write_text("[format]\nwidth = 120\n", encoding="utf-8")
-    traced = run_cli(["--en", "config", "--trace"], cwd=tmp_path)
+    traced = run_cli(["--en", "config", "trace"], cwd=tmp_path)
     assert traced.returncode == 0
     assert str(target.resolve()) in traced.stdout
-    width = run_cli(["--en", "config", "--get", "format.width"], cwd=tmp_path)
+    width = run_cli(["--en", "config", "get", "format.width"], cwd=tmp_path)
     assert width.stdout == "120\n"
 
 
 def test_config_set_creates_and_updates_file(tmp_path: Path) -> None:
-    created = run_cli(["--en", "config", "--set", "format.width", "100"], cwd=tmp_path)
+    created = run_cli(["--en", "config", "set", "format.width", "100"], cwd=tmp_path)
     assert created.returncode == 0
     target = tmp_path / "skillfmt.toml"
     assert target.is_file()
     assert "updated:" in created.stdout
     assert load_config(target).width == 100
-    updated = run_cli(["--en", "config", "--set", "format.indent", "2"], cwd=tmp_path)
+    updated = run_cli(["--en", "config", "set", "format.indent", "2"], cwd=tmp_path)
     assert updated.returncode == 0
     options = load_config(target)
     assert options.width == 100
@@ -302,7 +310,7 @@ def test_config_set_preserves_comments_and_other_keys(tmp_path: Path) -> None:
         "# keep this comment\n[format]\nwidth = 150\nindent = 2\n",
         encoding="utf-8",
     )
-    result = run_cli(["--en", "config", "--set", "format.width", "90"], cwd=tmp_path)
+    result = run_cli(["--en", "config", "set", "format.width", "90"], cwd=tmp_path)
     assert result.returncode == 0
     text = target.read_text(encoding="utf-8")
     assert "# keep this comment" in text
@@ -315,10 +323,10 @@ def test_config_set_preserves_comments_and_other_keys(tmp_path: Path) -> None:
 def test_config_set_boolean_and_list_values(tmp_path: Path) -> None:
     target = tmp_path / "skillfmt.toml"
     target.write_text("", encoding="utf-8")
-    wrapping = run_cli(["--en", "config", "--set", "categories.wrapping", "false"], cwd=tmp_path)
+    wrapping = run_cli(["--en", "config", "set", "categories.wrapping", "false"], cwd=tmp_path)
     assert wrapping.returncode == 0
     hanging = run_cli(
-        ["--en", "config", "--set", "rules.hanging", '["let", "quote"]'],
+        ["--en", "config", "set", "rules.hanging", '["let", "quote"]'],
         cwd=tmp_path,
     )
     assert hanging.returncode == 0
@@ -330,7 +338,7 @@ def test_config_set_boolean_and_list_values(tmp_path: Path) -> None:
 def test_config_set_unset_restores_default(tmp_path: Path) -> None:
     target = tmp_path / "skillfmt.toml"
     target.write_text("[format]\nwidth = 90\n", encoding="utf-8")
-    result = run_cli(["--en", "config", "--set", "format.width", "unset"], cwd=tmp_path)
+    result = run_cli(["--en", "config", "set", "format.width", "unset"], cwd=tmp_path)
     assert result.returncode == 0
     assert "width =" not in target.read_text(encoding="utf-8")
     assert load_config(target).width == 150
@@ -340,7 +348,7 @@ def test_config_set_invalid_value_does_not_write(tmp_path: Path) -> None:
     target = tmp_path / "skillfmt.toml"
     original = "[format]\nwidth = 150\n"
     target.write_text(original, encoding="utf-8")
-    result = run_cli(["--en", "config", "--set", "format.width", "10"], cwd=tmp_path)
+    result = run_cli(["--en", "config", "set", "format.width", "10"], cwd=tmp_path)
     assert result.returncode == 2
     assert "must be >= 20" in result.stderr
     assert target.read_text(encoding="utf-8") == original
@@ -350,7 +358,7 @@ def test_config_set_rejects_unknown_key(tmp_path: Path) -> None:
     target = tmp_path / "skillfmt.toml"
     original = "[format]\nwidth = 150\n"
     target.write_text(original, encoding="utf-8")
-    result = run_cli(["--en", "config", "--set", "format.nope", "1"], cwd=tmp_path)
+    result = run_cli(["--en", "config", "set", "format.nope", "1"], cwd=tmp_path)
     assert result.returncode == 2
     assert "unknown configuration key" in result.stderr
     assert target.read_text(encoding="utf-8") == original
@@ -360,7 +368,7 @@ def test_config_set_does_not_overwrite_invalid_file(tmp_path: Path) -> None:
     target = tmp_path / "skillfmt.toml"
     original = "not = [\n"
     target.write_text(original, encoding="utf-8")
-    result = run_cli(["--en", "config", "--set", "format.width", "90"], cwd=tmp_path)
+    result = run_cli(["--en", "config", "set", "format.width", "90"], cwd=tmp_path)
     assert result.returncode == 2
     assert target.read_text(encoding="utf-8") == original
 
@@ -368,13 +376,13 @@ def test_config_set_does_not_overwrite_invalid_file(tmp_path: Path) -> None:
 def test_config_set_and_get_with_explicit_path(tmp_path: Path) -> None:
     target = tmp_path / "custom.toml"
     set_result = run_cli(
-        ["--en", "config", "--config", str(target), "--set", "format.width", "88"],
+        ["--en", "config", "set", "--config", str(target), "format.width", "88"],
         cwd=tmp_path,
     )
     assert set_result.returncode == 0
     assert load_config(target).width == 88
     get_result = run_cli(
-        ["--en", "config", "--config", str(target), "--get", "format.width"],
+        ["--en", "config", "--config", str(target), "get", "format.width"],
         cwd=tmp_path,
     )
     assert get_result.returncode == 0

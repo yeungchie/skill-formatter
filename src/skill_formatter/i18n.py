@@ -28,9 +28,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "format_description": "Format files or stdin; write to stdout unless --write is given.",
         "check_description": "Report files or stdin that need formatting; exit 1 if any differ.",
         "diff_description": "Print unified diffs for files or stdin that need formatting.",
-        "config_description": (
-            "Print the template, read or write a configuration value, or trace the active file."
-        ),
+        "config_description": "Inspect or update configuration.",
         "paths": (
             "Input file or directory ('-' = stdin). Directories are searched recursively for "
             "*.il and *.ils; with no PATH, stdin is read."
@@ -70,6 +68,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "config_get": "print the effective value of KEY",
         "config_set": "write KEY VALUE to the active config file; VALUE may be 'unset'",
         "config_trace": "print the config file in effect",
+        "config_key": "configuration key (dotted name)",
+        "config_value": "value; use 'unset' to remove the key",
         "force_zh": "Force Chinese help and diagnostics.",
         "force_en": "Force English help and diagnostics.",
         "epilog": (
@@ -84,10 +84,10 @@ TEXTS: dict[str, dict[str, str]] = {
             "only help and diagnostics."
         ),
         "config_epilog": (
-            "Exactly one action is required. --get reads the discovered file or defaults;\n"
-            "--set updates the discovered file or creates skillfmt.toml in the current\n"
-            "directory. Use --trace to see which file is active. Keys use dotted names such\n"
-            "as format.width, categories.wrapping, safety.unknown or rules.hanging."
+            "Use --config after get, set or trace to target a file. set updates the\n"
+            "discovered file or creates skillfmt.toml in the current directory. Keys use\n"
+            "dotted names such as format.width, categories.wrapping, safety.unknown or\n"
+            "rules.hanging."
         ),
         "warning_label": "warning",
         "would_reformat": "would reformat",
@@ -95,7 +95,6 @@ TEXTS: dict[str, dict[str, str]] = {
         "no_skill_files": "no .il or .ils files found",
         "verbose_config": "config: {path}",
         "verbose_no_config": "config: built-in defaults",
-        "config_defaults": "built-in defaults",
         "config_updated": "updated: {path}",
         "verbose_changed": "{path}: formatted",
         "verbose_unchanged": "{path}: unchanged",
@@ -134,7 +133,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "format_description": "格式化文件或 stdin；未给 --write 时写到 stdout。",
         "check_description": "报告文件或 stdin 中需要格式化的内容；有差异退出 1。",
         "diff_description": "为需要格式化的文件或 stdin 输出 unified diff。",
-        "config_description": "打印模板、读取或写入配置值，或查看当前生效的配置文件。",
+        "config_description": "查看或修改配置。",
         "paths": "输入文件或目录（'-' 表示 stdin）。目录递归查找 *.il/*.ils；无 PATH 时读 stdin。",
         "write": "原地改写有变化的文件；校验通过后原子替换。",
         "lines": (
@@ -158,6 +157,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "config_get": "打印 KEY 的生效值",
         "config_set": "把 KEY VALUE 写入当前配置文件；VALUE 可为 'unset'",
         "config_trace": "打印当前生效的配置文件",
+        "config_key": "配置键（点号形式）",
+        "config_value": "值；'unset' 表示删除该键",
         "force_zh": "强制中文帮助与诊断。",
         "force_en": "强制英文帮助与诊断。",
         "epilog": (
@@ -171,9 +172,9 @@ TEXTS: dict[str, dict[str, str]] = {
             "语言: --zh/--en 互斥，覆盖自动检测，仅影响帮助与诊断。"
         ),
         "config_epilog": (
-            "必须且只能指定一个动作。--get 读取发现的配置文件或默认值；--set 更新发现的\n"
-            "文件，没有时在当前目录创建 skillfmt.toml；--trace 显示当前生效的文件。键名\n"
-            "使用点号形式，如 format.width、categories.wrapping、safety.unknown、rules.hanging。"
+            "get/set/trace 的 --config 用于指定文件。set 更新发现的文件，没有时在当前\n"
+            "目录创建 skillfmt.toml。键名使用点号形式，如 format.width、categories.wrapping、\n"
+            "safety.unknown、rules.hanging。"
         ),
         "warning_label": "警告",
         "would_reformat": "需要重新格式化",
@@ -181,7 +182,6 @@ TEXTS: dict[str, dict[str, str]] = {
         "no_skill_files": "未找到 .il 或 .ils 文件",
         "verbose_config": "配置: {path}",
         "verbose_no_config": "配置: 内置默认值",
-        "config_defaults": "内置默认值",
         "config_updated": "已更新: {path}",
         "verbose_changed": "{path}: 已格式化",
         "verbose_unchanged": "{path}: 未变化",

@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "skill-formatter contributors" }]
-dependencies = ["rich-argparse>=1.7"]
+dependencies = ["rich>=13.9", "rich-argparse>=1.7"]
 
 [project.scripts]
 skillfmt = "skill_formatter.cli:main"

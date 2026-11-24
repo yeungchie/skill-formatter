@@ -30,7 +30,7 @@ skillfmt diff file.il                   # 输出 unified diff
 cat file.il | skillfmt format           # stdin 过滤模式
 skillfmt format --lines 10:20 file.il   # 只格式化第 10-20 行
 skillfmt check src/                     # 递归检查目录下的 *.il / *.ils
-skillfmt config --template > skillfmt.toml  # 打印配置模板
+skillfmt config template > skillfmt.toml  # 打印配置模板
 ```
 
 子命令：
@@ -65,14 +65,14 @@ skillfmt config --template > skillfmt.toml  # 打印配置模板
 
 帮助按“选项一句话说明 + 末尾退出码与语言规则”组织；只有 `--lines`、`--line-width` 等非显然行为才展开说明。
 
-`config` 动作（互斥，必须选一个）：
+`config` 子命令：
 
-| 动作 | 说明 |
+| 子命令 | 说明 |
 | --- | --- |
-| `--template` | 打印带注释的 `skillfmt.toml` 模板 |
-| `--get KEY` | 打印 `KEY` 的生效值；没有配置文件时取默认值 |
-| `--set KEY VALUE` | 写入发现到的配置文件；没有时在当前目录创建 `skillfmt.toml` |
-| `--trace` | 打印当前生效的配置文件；没有时输出 `built-in defaults` |
+| `template` | 打印带注释的 `skillfmt.toml` 模板 |
+| `get KEY` | 打印 `KEY` 的生效值；没有配置文件时取默认值 |
+| `set KEY VALUE` | 写入发现到的配置文件；没有时在当前目录创建 `skillfmt.toml` |
+| `trace` | 打印当前生效的配置文件；没有时输出为空 |
 
 ## 格式分类
 
@@ -124,18 +124,18 @@ hanging = ["let", "letseq", "letrec", "quote"]
 配置命令：
 
 ```sh
-skillfmt config --template > skillfmt.toml          # 英文注释
-skillfmt --zh config --template > skillfmt.toml     # 中文注释
-skillfmt config --get format.width                  # 读取生效值
-skillfmt config --set format.width 100              # 写入当前配置
-skillfmt config --set categories.wrapping false
-skillfmt config --set format.base_indent unset      # 删除该键，恢复默认行为
-skillfmt config --trace                             # 查看生效文件
+skillfmt config template > skillfmt.toml          # 英文注释
+skillfmt --zh config template > skillfmt.toml     # 中文注释
+skillfmt config get format.width                  # 读取生效值
+skillfmt config set format.width 100              # 写入当前配置
+skillfmt config set categories.wrapping false
+skillfmt config set format.base_indent unset      # 删除该键，恢复默认行为
+skillfmt config trace                             # 查看生效文件
 ```
 
 键名使用点号形式：`format.width`、`format.indent`、`format.base_indent`、`format.output_style`、`categories.<名称>`、`safety.unknown`、`rules.inScheme`、`rules.case`、`rules.hanging`。
 
-`--template` 只打印到 stdout，不写文件；`--set` 才会写入文件。`--set` 可用 `--config PATH` 指定目标，写入前会重新解析校验，非法值不会落盘。模板注释语言随 `--zh` / `--en` 选择。
+`template` 只打印到 stdout，不写文件；`set` 才会写入文件。`get` / `set` / `trace` 可用 `--config PATH` 指定目标（写在子命令之后），写入前会重新解析校验，非法值不会落盘。模板注释语言随 `--zh` / `--en` 选择。
 
 ## 编辑器
 

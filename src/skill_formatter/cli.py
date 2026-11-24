@@ -10,6 +10,8 @@ import tempfile
 from pathlib import Path
 from typing import Any, NoReturn, cast
 
+from rich.console import Console
+from rich.syntax import Syntax
 from rich_argparse import RawDescriptionRichHelpFormatter
 
 from . import __version__
@@ -200,20 +202,62 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         epilog=strings["config_epilog"],
         formatter_class=LocalizedFormatter,
     )
-    set_titles(config_parser, strings["positional"])
-    config_parser.add_argument("--config", type=Path, metavar="PATH", help=strings["config_file"])
-    actions = config_parser.add_mutually_exclusive_group(required=True)
-    actions.add_argument("--template", action="store_true", help=strings["config_template"])
-    actions.add_argument("--get", metavar="KEY", help=strings["config_get"])
-    actions.add_argument(
-        "--set",
-        nargs=2,
-        metavar=("KEY", "VALUE"),
-        help=strings["config_set"],
+    set_titles(config_parser, strings["commands"])
+    config_parser.add_argument(
+        "--config",
+        type=Path,
+        metavar="PATH",
+        default=argparse.SUPPRESS,
+        help=strings["config_file"],
     )
-    actions.add_argument("--trace", action="store_true", help=strings["config_trace"])
     add_language_options(config_parser, suppress_default=True)
     add_help_option(config_parser)
+    config_sub = config_parser.add_subparsers(
+        dest="config_command",
+        required=True,
+        title=strings["commands"],
+    )
+
+    def add_config_leaf(
+        name: str,
+        help_text: str,
+        description: str,
+        *,
+        with_config: bool = True,
+    ) -> argparse.ArgumentParser:
+        leaf = config_sub.add_parser(
+            name,
+            add_help=False,
+            help=help_text,
+            description=description,
+            epilog=strings["config_epilog"],
+            formatter_class=LocalizedFormatter,
+        )
+        set_titles(leaf, strings["positional"])
+        if with_config:
+            leaf.add_argument(
+                "--config",
+                type=Path,
+                metavar="PATH",
+                default=argparse.SUPPRESS,
+                help=strings["config_file"],
+            )
+        add_language_options(leaf, suppress_default=True)
+        add_help_option(leaf)
+        return leaf
+
+    add_config_leaf(
+        "template",
+        strings["config_template"],
+        strings["config_template"],
+        with_config=False,
+    )
+    get_parser = add_config_leaf("get", strings["config_get"], strings["config_get"])
+    get_parser.add_argument("key", metavar="KEY", help=strings["config_key"])
+    set_parser = add_config_leaf("set", strings["config_set"], strings["config_set"])
+    set_parser.add_argument("key", metavar="KEY", help=strings["config_key"])
+    set_parser.add_argument("value", metavar="VALUE", help=strings["config_value"])
+    add_config_leaf("trace", strings["config_trace"], strings["config_trace"])
 
     return parser
 
@@ -352,29 +396,46 @@ def _active_config_path(raw: Path | None, cwd: Path, create: bool) -> Path | Non
     return cwd / "skillfmt.toml" if create else None
 
 
+def _print_config_template(lang: str) -> None:
+    console = Console()
+    console.print(
+        Syntax(
+            render_template(lang).rstrip("\n"),
+            "toml",
+            theme="ansi_dark",
+            line_numbers=False,
+            word_wrap=False,
+            background_color=None,
+        ),
+        end="",
+    )
+
+
 def _run_config(args: argparse.Namespace, lang: str) -> int:
-    if args.template:
-        sys.stdout.write(render_template(lang))
+    command = args.config_command
+    if command == "template":
+        _print_config_template(lang)
         return 0
     cwd = Path.cwd()
+    raw_config = getattr(args, "config", None)
     try:
-        if args.get is not None:
-            spec = config_key_spec(args.get)
-            path = _active_config_path(args.config, cwd, create=False)
+        if command == "get":
+            spec = config_key_spec(args.key)
+            path = _active_config_path(raw_config, cwd, create=False)
             options = load_config(path, cwd)
-            print(format_config_value(config_option_value(options, args.get), spec))
+            print(format_config_value(config_option_value(options, args.key), spec))
             return 0
-        if args.trace:
-            path = _active_config_path(args.config, cwd, create=False)
-            print(path.resolve() if path is not None else tr(lang, "config_defaults"))
+        if command == "trace":
+            path = _active_config_path(raw_config, cwd, create=False)
+            if path is not None:
+                print(path.resolve())
             return 0
-        if args.set is not None:
-            key, raw = args.set
-            path = _active_config_path(args.config, cwd, create=True)
+        if command == "set":
+            path = _active_config_path(raw_config, cwd, create=True)
             if path is None:
                 raise ConfigError("cannot determine configuration file")
             old = path.read_text(encoding="utf-8") if path.is_file() else ""
-            _write_atomic(path, set_config_text(old, key, raw))
+            _write_atomic(path, set_config_text(old, args.key, args.value))
             print(tr(lang, "config_updated").format(path=path.resolve()))
             return 0
     except (ConfigError, OSError) as exc:
