@@ -50,15 +50,15 @@ def test_help_is_stable_without_color() -> None:
     result = run_cli(["-h"])
     assert result.returncode == 0
     assert "Usage: skillfmt" in result.stdout
-    assert "--width" in result.stdout
+    assert "--line-width" in result.stdout
     assert "\x1b[" not in result.stdout
 
 
 def test_width_option_controls_wrapping() -> None:
     source = 'list("aaaaaaaaaaaaaaaaaaaa" "bbbbbbbbbbbbbbbbbbbb")\n'
-    narrow = run_cli(["--width", "30"], source)
+    narrow = run_cli(["--line-width", "30"], source)
     assert narrow.returncode == 0
     assert narrow.stdout == ('list(\n    "aaaaaaaaaaaaaaaaaaaa"\n    "bbbbbbbbbbbbbbbbbbbb"\n)\n')
-    wide = run_cli(["--width", "200"], source)
+    wide = run_cli(["--line-width", "200"], source)
     assert wide.returncode == 0
     assert wide.stdout == source

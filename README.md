@@ -39,7 +39,7 @@ skillfmt --lines 10:20 file.il   # 只格式化第 10-20 行
 | `--check` | 不改文件；有差异 exit 1 |
 | `--diff` | 输出 unified diff |
 | `--lines A:B` | 1 基、含两端；可重复；支持 `A:` / `:B` |
-| `--width N` | 行宽上限；覆盖配置 `format.width`，默认 150 |
+| `--line-width N` | 全局行宽上限；覆盖配置 `format.width`，默认 150 |
 | `--base-indent N` | 指定第一层起始缩进 |
 | `--stdin-path PATH` | stdin 输入对应的真实文件路径 |
 | `--only CATS` / `--skip CATS` | 只启用/跳过分类 |

@@ -71,8 +71,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="format only lines A:B (1-based, inclusive; repeatable)",
     )
     parser.add_argument(
-        "--width",
+        "--line-width",
         type=_parse_width,
+        dest="line_width",
         metavar="N",
         help="line width limit (default: 150, or format.width from config)",
     )
@@ -105,7 +106,7 @@ def _apply_cli_options(args: argparse.Namespace, options: Options) -> Options:
     elif args.best_effort:
         unknown = "conservative"
     return Options(
-        width=args.width if args.width is not None else options.width,
+        width=args.line_width if args.line_width is not None else options.width,
         indent=options.indent,
         base_indent=args.base_indent if args.base_indent is not None else options.base_indent,
         categories=frozenset(cats),
