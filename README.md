@@ -11,14 +11,16 @@
 ```sh
 git clone <repo>
 cd skill-formatter
-uv tool install .
+uv tool install '.[full]'    # 带帮助美化
+# 或：uv tool install .     # 零第三方依赖，纯文本
 uv tool list          # 应显示 skfmt
 ```
 
 发布到 PyPI 后也可以直接临时运行：
 
 ```sh
-uvx skfmt --version
+uvx --from 'skfmt[full]' skfmt --version  # 带美化
+uvx skfmt --version                       # 零第三方依赖
 ```
 
 开发环境：
@@ -26,6 +28,35 @@ uvx skfmt --version
 ```sh
 uv sync --dev
 ```
+
+`rich` / `rich-argparse` 只影响帮助与配置模板的显示；不装 `[full]` 时，格式化、检查、diff、配置读写与退出码完全一致。
+
+### 无第三方依赖运行（内网/离线）
+
+把仓库目录拷贝到只有 Python 3.12 的机器后，不需要安装 `uv`、`skfmt` 或 `rich`，把 `src` 加入模块搜索路径即可：
+
+```sh
+# Linux/macOS
+PYTHONPATH=src python -m skfmt --version
+PYTHONPATH=src python -m skfmt format file.il
+PYTHONPATH=src python -m skfmt check src/
+
+# Windows PowerShell
+$env:PYTHONPATH = "src"
+python -m skfmt --version
+python -m skfmt format file.il
+```
+
+`rich` 与 `rich-argparse` 只用于帮助和 `config template` 的美化；导入失败时自动退化为纯文本，格式化结果与退出码不变。即使已安装 rich，也可以设置 `SKFMT_PLAIN=1` 强制使用纯文本。
+
+编辑器需要的是一个名为 `skfmt` 的可执行命令。内网机器没有安装入口时，可以建一个包装脚本，例如 Unix：
+
+```sh
+#!/bin/sh
+PYTHONPATH=/path/to/skill-formatter/src exec python3 -m skfmt "$@"
+```
+
+保存为 `~/bin/skfmt` 并 `chmod +x`，再把 Vim 的 `g:skfmt_executable` 或 VS Code 的 `skfmt.executablePath` 指向它。
 
 ## 命令行
 

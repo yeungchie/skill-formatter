@@ -10,10 +10,6 @@ import tempfile
 from pathlib import Path
 from typing import Any, NoReturn, cast
 
-from rich.console import Console
-from rich.syntax import Syntax
-from rich_argparse import RawDescriptionRichHelpFormatter
-
 from . import __version__
 from .config import (
     ConfigError,
@@ -30,6 +26,7 @@ from .i18n import TEXTS, detect_language
 from .i18n import text as tr
 from .identity import CONFIG_NAME, TOOL_NAME
 from .options import CATEGORIES, Options
+from .ui import Console, RawDescriptionRichHelpFormatter, Syntax
 
 
 def _parse_line_range(text: str, lang: str = "en") -> tuple[int | None, int | None]:
@@ -81,6 +78,8 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
                 groups,
                 prefix=strings["usage"] if prefix is None else prefix,
             )
+
+    formatter_cls: Any = LocalizedFormatter
 
     class LocalizedParser(argparse.ArgumentParser):
         def error(self, message: str) -> NoReturn:
@@ -144,7 +143,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     parser = LocalizedParser(
         prog=TOOL_NAME,
         description=strings["description"],
-        formatter_class=LocalizedFormatter,
+        formatter_class=formatter_cls,
         add_help=False,
     )
     parser.add_argument(
@@ -169,7 +168,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         add_help=False,
         help=strings["command_format"],
         description=strings["format_description"],
-        formatter_class=LocalizedFormatter,
+        formatter_class=formatter_cls,
     )
     set_titles(format_parser, strings["positional"])
     format_parser.add_argument("-w", "--write", action="store_true", help=strings["write"])
@@ -186,7 +185,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
             add_help=False,
             help=command_help,
             description=description,
-            formatter_class=LocalizedFormatter,
+            formatter_class=formatter_cls,
         )
         set_titles(sub, strings["positional"])
         add_language_options(sub, suppress_default=True)
@@ -197,7 +196,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
         add_help=False,
         help=strings["command_config"],
         description=strings["config_description"],
-        formatter_class=LocalizedFormatter,
+        formatter_class=formatter_cls,
     )
     set_titles(config_parser, strings["commands"])
     add_language_options(config_parser, suppress_default=True)
@@ -220,7 +219,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
             add_help=False,
             help=help_text,
             description=description,
-            formatter_class=LocalizedFormatter,
+            formatter_class=formatter_cls,
         )
         set_titles(leaf, strings["positional"])
         if with_config:
@@ -396,10 +395,14 @@ def _active_config_path(raw: Path | None, cwd: Path, create: bool) -> Path | Non
 
 
 def _print_config_template(lang: str) -> None:
+    template = render_template(lang).rstrip("\n")
+    if Console is None or Syntax is None:
+        print(template, end="")
+        return
     console = Console(soft_wrap=True)
     console.print(
         Syntax(
-            render_template(lang).rstrip("\n"),
+            template,
             "toml",
             theme="ansi_dark",
             line_numbers=False,

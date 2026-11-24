@@ -137,7 +137,9 @@ wheels = [
 [[package]]
 name = "skfmt"
 source = { editable = "." }
-dependencies = [
+
+[package.optional-dependencies]
+full = [
     { name = "rich" },
     { name = "rich-argparse" },
 ]
@@ -145,19 +147,24 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "rich" },
+    { name = "rich-argparse" },
     { name = "ruff" },
     { name = "ty" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "rich", specifier = ">=13.9" },
-    { name = "rich-argparse", specifier = ">=1.7" },
+    { name = "rich", marker = "extra == 'full'", specifier = ">=13.9" },
+    { name = "rich-argparse", marker = "extra == 'full'", specifier = ">=1.7" },
 ]
+provides-extras = ["full"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "pytest", specifier = ">=8.3" },
+    { name = "rich", specifier = ">=13.9" },
+    { name = "rich-argparse", specifier = ">=1.7" },
     { name = "ruff", specifier = ">=0.9" },
     { name = "ty", specifier = ">=0.0.1a1" },
 ]

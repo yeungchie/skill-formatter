@@ -36,6 +36,13 @@ def test_author_metadata_matches_publisher() -> None:
     assert "YEUNGCHIE" in (ROOT / "editors" / "vscode" / "LICENSE").read_text(encoding="utf-8")
 
 
+def test_presentation_dependencies_are_optional() -> None:
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    project = pyproject["project"]
+    assert project["dependencies"] == []
+    assert project["optional-dependencies"] == {"full": ["rich>=13.9", "rich-argparse>=1.7"]}
+
+
 def test_editors_require_available_cli_version() -> None:
     vscode = (ROOT / "editors" / "vscode" / "src" / "format.ts").read_text(encoding="utf-8")
     vim = (ROOT / "editors" / "vim" / "autoload" / "skfmt.vim").read_text(encoding="utf-8")

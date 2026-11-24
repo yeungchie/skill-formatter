@@ -6,7 +6,12 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "YEUNGCHIE" }]
-dependencies = ["rich>=13.9", "rich-argparse>=1.7"]
+dependencies = []
+
+[project.optional-dependencies]
+# Presentation only. Plain "skfmt" stays zero-dependency; "skfmt[full]"
+# enables pretty help and TOML highlighting.
+full = ["rich>=13.9", "rich-argparse>=1.7"]
 
 [project.scripts]
 skfmt = "skfmt.cli:main"
@@ -16,6 +21,8 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.9",
     "ty>=0.0.1a1",
+    "rich>=13.9",
+    "rich-argparse>=1.7",
 ]
 
 [build-system]
