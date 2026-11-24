@@ -15,13 +15,11 @@ yourself, for example:
 
 The extension id is `YEUNGCHIE.skfmt` (`publisher.name`).
 
-`Shift+Alt+F` is VS Code's Format Document command and normally formats the
-whole file. Format Selection is `Ctrl+K Ctrl+F` (`Cmd+K Cmd+F` on macOS). To
-match the common "select, then format" workflow, the extension binds
-`Shift+Alt+F` to `skfmt.formatSelection` when a selection exists in a `skill`
-document. Other languages keep the standard behavior; bind
-`skfmt.formatSelection` yourself if you want the same shortcut there. The
-extension does not use `Ctrl+Shift+F`.
+`Shift+Alt+F` is VS Code's Format Document command and formats the whole
+file. Format Selection is `Ctrl+K Ctrl+F` (`Cmd+K Cmd+F` on macOS) and only
+replaces the selected lines. The extension follows these standard shortcuts
+and does not override them or use `Ctrl+Shift+F`. You can bind
+`skfmt.formatSelection` yourself if you prefer another key.
 
 To make `.il`/`.ils` files open as `skill`, add your own association:
 

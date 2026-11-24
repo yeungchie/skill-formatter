@@ -166,7 +166,7 @@ skfmt config trace                          # 查看生效文件
 
 扩展位于 `editors/vscode/`，声明 `skill` 语言并注册文档/选区格式化器；不自动关联 `.il`/`.ils`，也不设置默认 formatter。
 
-VS Code 自带的 `Shift+Alt+F` 是 Format Document，会格式化整个文件；Format Selection 的标准快捷键是 `Ctrl+K Ctrl+F`（macOS `Cmd+K Cmd+F`）。为方便操作，扩展对 `skill` 语言增加了限定：有选区时 `Shift+Alt+F` 自动执行 Format Selection，只格式化选中行；其他语言仍使用标准规则，或自行在 `keybindings.json` 中绑定 `skfmt.formatSelection`。扩展不占用 `Ctrl+Shift+F`。
+VS Code 自带的 `Shift+Alt+F` 是 Format Document，格式化整个文件；Format Selection 的标准快捷键是 `Ctrl+K Ctrl+F`（macOS `Cmd+K Cmd+F`），只格式化选中行。扩展遵循这两套标准快捷键，不覆盖、不占用 `Ctrl+Shift+F`；如需其他键位，可自行在 `keybindings.json` 中绑定 `skfmt.formatSelection`。
 
 格式化器对所有语言开放，用户自己指定哪些语言使用本插件，例如在 `settings.json` 中：
 

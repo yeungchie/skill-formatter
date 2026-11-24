@@ -38,20 +38,6 @@ def test_vscode_manifest_declares_skill_without_file_associations() -> None:
     assert (ROOT / "editors" / "vscode" / "language-configuration.json").is_file()
 
 
-def test_vscode_selection_keybinding_is_scoped() -> None:
-    manifest = json.loads(
-        (ROOT / "editors" / "vscode" / "package.json").read_text(encoding="utf-8")
-    )
-    bindings = manifest["contributes"]["keybindings"]
-    assert bindings == [
-        {
-            "command": "skfmt.formatSelection",
-            "key": "shift+alt+f",
-            "when": "editorTextFocus && editorHasSelection && editorLangId == skill",
-        }
-    ]
-
-
 def test_vim_headless_smoke() -> None:
     vim = shutil.which("vim")
     if vim is None:

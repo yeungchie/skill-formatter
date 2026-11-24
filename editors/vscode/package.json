@@ -30,13 +30,6 @@
         "title": "Skfmt: Format Selection"
       }
     ],
-    "keybindings": [
-      {
-        "command": "skfmt.formatSelection",
-        "key": "shift+alt+f",
-        "when": "editorTextFocus && editorHasSelection && editorLangId == skill"
-      }
-    ],
     "configuration": {
       "title": "SKILL Formatter",
       "properties": {
