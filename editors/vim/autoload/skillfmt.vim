@@ -11,6 +11,19 @@ function! s:Executable() abort
   return get(g:, 'skillfmt_executable', 'skillfmt')
 endfunction
 
+function! skillfmt#FormatPrg() abort
+  let l:cmd = shellescape(s:Executable()) . ' format'
+  let l:extra = get(g:, 'skillfmt_args', '')
+  if !empty(l:extra)
+    let l:cmd .= ' ' . l:extra
+  endif
+  return l:cmd
+endfunction
+
+function! skillfmt#Refresh() abort
+  let &l:formatprg = skillfmt#FormatPrg()
+endfunction
+
 function! s:ShowError(file) abort
   let l:lines = filereadable(a:file) ? readfile(a:file) : ['skillfmt failed']
   echohl ErrorMsg

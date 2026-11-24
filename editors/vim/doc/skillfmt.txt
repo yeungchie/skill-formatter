@@ -10,7 +10,12 @@ COMMANDS
                                                         *:SkillfmtRange*
 :[range]SkillfmtRange   Format the smallest enclosing form(s) for the range.
                         The whole buffer is sent to skillfmt with --lines, so
-                        text outside the range is preserved byte for byte.
+                        text outside the affected form(s) is preserved byte
+                        for byte.
+
+                                                        *:SkillfmtRefresh*
+:SkillfmtRefresh        Rebuild 'formatprg' after changing
+                        |g:skillfmt_executable| or |g:skillfmt_args|.
 
 FILTERS
 
@@ -22,7 +27,8 @@ FILTERS
 OPTIONS
 
   g:skillfmt_executable  Path to the executable. Default: "skillfmt".
-  g:skillfmt_args        Extra shell arguments appended to the command.
+  g:skillfmt_args        Extra shell arguments appended to the command,
+                        including the 'formatprg' used by |gq|.
 
 Vim 7.4 NOTES
 

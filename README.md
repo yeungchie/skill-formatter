@@ -152,6 +152,19 @@ skillfmt config trace                             # 查看生效文件
 
 扩展位于 `editors/vscode/`，注册空语言 id `skill`（`.il`/`.ils`）与格式化器；不提供语法高亮。使用 VS Code 标准 Format Document（Windows/Linux `Shift+Alt+F`）与 Format Selection（`Ctrl+K Ctrl+F`），不占用 `Ctrl+Shift+F`。
 
+选区可以只覆盖一个 form，也可以跨多个顶层 form；格式化会扩展到选区命中的完整 form，未命中的文本逐字保留。`skillFormatter.enableRangeFormatting` 为 `false` 时不注册选区格式化，命令面板中的 Format Selection 也会提示已禁用。
+
+扩展设置：
+
+| 设置 | 作用 |
+| --- | --- |
+| `skillFormatter.executablePath` | `skillfmt` 可执行文件路径 |
+| `skillFormatter.configPath` | 指定 `skillfmt.toml`；留空则自动查找 |
+| `skillFormatter.extraArgs` | 追加给 `skillfmt format` 的参数 |
+| `skillFormatter.timeoutMs` | 单次格式化超时（毫秒） |
+| `skillFormatter.enableRangeFormatting` | 是否启用 Format Selection |
+| `skillFormatter.languages` | 使用该格式化器的语言 id 列表 |
+
 ```sh
 cd editors/vscode
 npm install
@@ -173,7 +186,7 @@ code --install-extension skillfmt-skill-formatter-0.1.0.vsix
 :'<,'>!skillfmt format " 原生过滤：选区（片段模式）
 ```
 
-`ftplugin` 在 `skillfmt` 可执行时设置 `formatprg=skillfmt format`，可用 `gq`。插件不使用 Vim 8+ 的 `systemlist`、job、timer、JSON 等特性。
+`ftplugin` 在 `skillfmt` 可执行时设置 `formatprg`，可用 `gq`；`g:skillfmt_executable` 与 `g:skillfmt_args` 都会参与命令行构造。运行中修改这两个变量后执行 `:SkillfmtRefresh` 重新生成 `formatprg`。插件不使用 Vim 8+ 的 `systemlist`、job、timer、JSON 等特性。
 
 ## 安全模型
 

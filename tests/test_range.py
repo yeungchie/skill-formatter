@@ -31,6 +31,24 @@ def test_range_can_format_a_top_level_form() -> None:
     assert result.text.startswith('useNamespace("x")\nprocedure(foo(a "t")\n')
 
 
+def test_range_formats_multiple_top_level_forms() -> None:
+    source = "foo( 1 2 )\nbar( 3 4 )\nbaz( 5 6 )\n"
+    result = format_range(source, [(1, 2)])
+    assert result.text == "foo(1 2)\nbar(3 4)\nbaz( 5 6 )\n"
+
+
+def test_range_formats_multiple_forms_with_definition_blank_lines() -> None:
+    source = "procedure(a()\n  1\n)\nfoo( 1 2 )\n\nprocedure(b()\n  2\n)\n"
+    result = format_range(source, [(1, 4)])
+    assert result.text == ("procedure(a()\n    1\n)\nfoo(1 2)\n\nprocedure(b()\n  2\n)\n")
+
+
+def test_range_deduplicates_overlapping_selections() -> None:
+    source = "foo( 1 2 )\nbar( 3 4 )\nbaz( 5 6 )\n"
+    result = format_range(source, [(1, 2), (2, 3)])
+    assert result.text == "foo(1 2)\nbar(3 4)\nbaz(5 6)\n"
+
+
 def test_comment_only_range_is_noop() -> None:
     source = "a = 1\n; only comment\nb = 2\n"
     assert format_range(source, [(2, 2)]).text == source

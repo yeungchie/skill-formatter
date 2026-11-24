@@ -44,5 +44,11 @@ if s:lines[1] != '    let((x)' || s:lines[2] != '        x=1'
   call s:Fail('range formatting: ' . string(s:lines))
 endif
 
+let g:skillfmt_args = '--line-width 80'
+SkillfmtRefresh
+if &l:formatprg !~# '--line-width 80'
+  call s:Fail('refresh did not apply g:skillfmt_args: ' . &l:formatprg)
+endif
+
 call delete(s:file)
 qall!

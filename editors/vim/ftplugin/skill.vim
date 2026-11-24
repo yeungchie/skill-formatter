@@ -2,6 +2,6 @@ setlocal commentstring=;%s
 
 let s:exe = get(g:, 'skillfmt_executable', 'skillfmt')
 if executable(s:exe)
-  let &l:formatprg = s:exe . ' format'
+  call skillfmt#Refresh()
 endif
 unlet s:exe

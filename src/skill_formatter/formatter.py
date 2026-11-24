@@ -982,6 +982,34 @@ def _selected_node(root: Node, start: int, end: int, text: str) -> Node | None:
     return candidates[-1]
 
 
+def _range_nodes(root: Node, start: int, end: int, text: str) -> list[Node]:
+    """Return the smallest complete nodes covering one selected line span."""
+    forms = [
+        child
+        for child in root.children
+        if child.kind not in {"comment", "seq", "opaque"}
+        and child.start < end
+        and child.end > start
+    ]
+    if len(forms) > 1:
+        return forms
+    node = _selected_node(root, start, end, text)
+    if node is not None:
+        return [node]
+    return forms
+
+
+def _outermost_nodes(nodes: list[Node]) -> list[Node]:
+    unique: dict[int, Node] = {id(node): node for node in nodes}
+    ordered = sorted(unique.values(), key=lambda node: (node.start, -(node.end - node.start)))
+    selected: list[Node] = []
+    for node in ordered:
+        if any(other.start <= node.start and other.end >= node.end for other in selected):
+            continue
+        selected.append(node)
+    return selected
+
+
 def format_range(
     text: str, ranges: list[tuple[int | None, int | None]], options: Options | None = None
 ) -> FormatResult:
@@ -1011,40 +1039,35 @@ def format_range(
     renderer.render_root(root)
     whole_lines = renderer.out.finish()
 
-    replacements: list[tuple[int, int, str]] = []
+    targets: list[Node] = []
     for start, end in spans:
-        if text[start:end].strip() == "" or all(
-            line.lstrip().startswith(";") for line in text[start:end].splitlines() if line.strip()
-        ):
-            continue
-        node = _selected_node(root, start, end, text)
-        if node is None:
-            continue
+        targets.extend(_range_nodes(root, start, end, text))
+
+    replacements: list[tuple[int, int, str]] = []
+    for node in _outermost_nodes(targets):
         for opaque_start, opaque_end in opaque:
             if node.start >= opaque_start and node.end <= opaque_end:
                 warnings.append("selection intersects an unsupported form; left unchanged")
-                node = None
                 break
-        if node is None:
-            continue
-        info = renderer.node_info.get(id(node))
-        if info is None:
-            continue
-        out_start, out_end, node_indent = info
-        if opts.base_indent is not None:
-            sub = Renderer(opts)
-            sub.out = LineBuilder(opts.base_indent)
-            sub.render_node(node, opts.base_indent)
-            replacement_lines = sub.out.finish()
         else:
-            replacement_lines = whole_lines[out_start : out_end + 1]
-        line_start = text.rfind("\n", 0, node.start) + 1
-        line_end = text.find("\n", node.end)
-        if line_end < 0:
-            line_end = len(text)
-        line_sep = "\n" if opts.enabled("eol") else lexed.eol
-        replacement = line_sep.join(replacement_lines)
-        replacements.append((line_start, line_end, replacement))
+            info = renderer.node_info.get(id(node))
+            if info is None:
+                continue
+            out_start, out_end, _ = info
+            if opts.base_indent is not None:
+                sub = Renderer(opts)
+                sub.out = LineBuilder(opts.base_indent)
+                sub.render_node(node, opts.base_indent)
+                replacement_lines = sub.out.finish()
+            else:
+                replacement_lines = whole_lines[out_start : out_end + 1]
+            line_start = text.rfind("\n", 0, node.start) + 1
+            line_end = text.find("\n", node.end)
+            if line_end < 0:
+                line_end = len(text)
+            line_sep = "\n" if opts.enabled("eol") else lexed.eol
+            replacement = line_sep.join(replacement_lines)
+            replacements.append((line_start, line_end, replacement))
 
     output = text
     for line_start, line_end, replacement in sorted(replacements, reverse=True):

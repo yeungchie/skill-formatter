@@ -15,3 +15,4 @@ let g:loaded_skillfmt = 1
 
 command! -nargs=0 Skillfmt call skillfmt#FormatAll()
 command! -range=% -nargs=0 SkillfmtRange call skillfmt#FormatRange(<line1>, <line2>)
+command! -nargs=0 SkillfmtRefresh call skillfmt#Refresh()

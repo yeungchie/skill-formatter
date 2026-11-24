@@ -37,10 +37,10 @@ async function formatDocument(
   const text = document.getText();
   try {
     const result = await runFormatter(options, text);
+    if (result.stderr) {
+      output.appendLine(result.stderr.trimEnd());
+    }
     if (result.code !== 0) {
-      if (result.stderr) {
-        output.appendLine(result.stderr.trimEnd());
-      }
       vscode.window.showErrorMessage("skillfmt: formatting failed; document left unchanged");
       return [];
     }
@@ -64,28 +64,46 @@ async function formatDocument(
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  const config = vscode.workspace.getConfiguration("skillFormatter");
-  const languages = config.get<string[]>("languages", ["skill", "skillpp"]);
-  const enableRange = config.get<boolean>("enableRangeFormatting", true);
+  let providers: vscode.Disposable[] = [];
 
-  for (const language of languages) {
-    const selector = { language };
-    context.subscriptions.push(
-      vscode.languages.registerDocumentFormattingEditProvider(selector, {
-        provideDocumentFormattingEdits: (document) => formatDocument(document),
-      }),
-    );
-    if (enableRange) {
-      context.subscriptions.push(
-        vscode.languages.registerDocumentRangeFormattingEditProvider(selector, {
-          provideDocumentRangeFormattingEdits: (document, range) =>
-            formatDocument(document, range),
+  const registerProviders = (): void => {
+    for (const provider of providers) {
+      provider.dispose();
+    }
+    providers = [];
+    const config = vscode.workspace.getConfiguration("skillFormatter");
+    const languages = config.get<string[]>("languages", ["skill", "skillpp"]);
+    const enableRange = config.get<boolean>("enableRangeFormatting", true);
+    for (const language of languages) {
+      const selector = { language };
+      providers.push(
+        vscode.languages.registerDocumentFormattingEditProvider(selector, {
+          provideDocumentFormattingEdits: (document) => formatDocument(document),
         }),
       );
+      if (enableRange) {
+        providers.push(
+          vscode.languages.registerDocumentRangeFormattingEditProvider(selector, {
+            provideDocumentRangeFormattingEdits: (document, range) =>
+              formatDocument(document, range),
+          }),
+        );
+      }
     }
-  }
+  };
+
+  registerProviders();
 
   context.subscriptions.push(
+    { dispose: () => providers.forEach((provider) => provider.dispose()) },
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (
+        event.affectsConfiguration("skillFormatter.languages") ||
+        event.affectsConfiguration("skillFormatter.enableRangeFormatting")
+      ) {
+        registerProviders();
+      }
+    }),
     vscode.commands.registerCommand("skillFormatter.formatDocument", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
@@ -103,6 +121,15 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("skillFormatter.formatSelection", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
+        return;
+      }
+      const enabled = vscode.workspace
+        .getConfiguration("skillFormatter", editor.document.uri)
+        .get<boolean>("enableRangeFormatting", true);
+      if (!enabled) {
+        vscode.window.showInformationMessage(
+          "skillfmt: Format Selection is disabled by skillFormatter.enableRangeFormatting",
+        );
         return;
       }
       const edits = await formatDocument(editor.document, editor.selection);

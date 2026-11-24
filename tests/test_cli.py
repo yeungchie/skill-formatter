@@ -142,6 +142,59 @@ def test_width_option_controls_wrapping() -> None:
     assert wide.stdout == source
 
 
+def test_lines_option_formats_multiple_selected_forms() -> None:
+    source = "foo( 1 2 )\nbar( 3 4 )\nbaz( 5 6 )\n"
+    result = run_cli(["format", "--lines", "1:2"], source)
+    assert result.returncode == 0
+    assert result.stdout == "foo(1 2)\nbar(3 4)\nbaz( 5 6 )\n"
+
+
+def test_lines_option_writes_only_selection(tmp_path: Path) -> None:
+    path = tmp_path / "x.il"
+    path.write_text("foo( 1 2 )\nbar( 3 4 )\n", encoding="utf-8")
+    result = run_cli(["format", "-w", "--lines", "1:1", str(path)])
+    assert result.returncode == 0
+    assert path.read_text(encoding="utf-8") == "foo(1 2)\nbar( 3 4 )\n"
+
+
+def test_base_indent_option() -> None:
+    result = run_cli(["format", "--base-indent", "4"], "foo( 1 2 )\n")
+    assert result.returncode == 0
+    assert result.stdout == "    foo(1 2)\n"
+
+
+def test_stdin_path_locates_config(tmp_path: Path) -> None:
+    (tmp_path / "skillfmt.toml").write_text("[format]\nindent = 2\n", encoding="utf-8")
+    source = 'procedure(foo(a "t")\n1\n)\n'
+    result = run_cli(
+        ["format", "--stdin-path", str(tmp_path / "x.il")],
+        source,
+    )
+    assert result.returncode == 0
+    assert result.stdout == 'procedure(foo(a "t")\n  1\n)\n'
+
+
+def test_only_option_enables_one_category() -> None:
+    source = 'procedure(foo(a "t")\nx=1\n)\n'
+    indent_only = run_cli(["format", "--only", "indent"], source)
+    assert indent_only.returncode == 0
+    assert indent_only.stdout == 'procedure(foo(a "t")\n    x=1\n)\n'
+    spacing_only = run_cli(["format", "--only", "spacing"], source)
+    assert spacing_only.returncode == 0
+    assert spacing_only.stdout == 'procedure(foo(a "t")\nx=1\n)\n'
+
+
+def test_quiet_suppresses_warnings() -> None:
+    source = "(+ a b)\n"
+    loud = run_cli(["--en", "format"], source)
+    assert loud.returncode == 0
+    assert "warning" in loud.stderr
+    quiet = run_cli(["--en", "format", "--quiet"], source)
+    assert quiet.returncode == 0
+    assert quiet.stdout == source
+    assert quiet.stderr == ""
+
+
 def test_help_language_override_chinese() -> None:
     result = run_cli(["-h"], env_extra={"SKILLFMT_LANG": "zh"})
     assert result.returncode == 0
