@@ -243,6 +243,7 @@ class Parser:
 
     # -- expressions ---------------------------------------------------
     def parse_expr(self, context: str, min_prec: int = 0, allow_convert: bool = True) -> Node:
+        blank_before = self.peek().blank_before
         left = self.parse_primary(context, allow_convert)
 
         while True:
@@ -310,6 +311,7 @@ class Parser:
                 end=right.end,
                 line=left.line,
             )
+        left.blank_before = blank_before
         return left
 
     def parse_primary(self, context: str, allow_convert: bool) -> Node:

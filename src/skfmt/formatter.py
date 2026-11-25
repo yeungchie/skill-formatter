@@ -35,6 +35,9 @@ def _is_number(text: str) -> bool:
     return True
 
 
+FOREACH_MODIFIERS = frozenset({"map", "mapc", "mapcar", "mapcan", "maplist", "mapcon"})
+
+
 class LineBuilder:
     def __init__(self, indent: int = 0) -> None:
         self.lines: list[str] = []
@@ -164,10 +167,13 @@ class Renderer:
     def _render_block(self, children: list[Node], indent: int) -> None:
         first = True
         previous_non_comment: Node | None = None
-        for index, child in enumerate(children):
+        index = 0
+        while index < len(children):
+            child = children[index]
             if child.kind == "comment" and child.inline:
                 self.out.write("  " + child.value)
                 first = False
+                index += 1
                 continue
             if not first or self.out.current.strip():
                 self.out.newline(indent)
@@ -192,14 +198,84 @@ class Renderer:
                     blanks = 1 if self.options.enabled("blank-lines") else child.blank_before
             if blanks:
                 self.out.lines.extend([""] * blanks)
+            if self.options.enabled("align-assignments") and self._is_assignment(child):
+                rows, end = self._assignment_rows(children, index)
+                if len(rows) > 1:
+                    if not self._render_aligned_assignments(rows, indent):
+                        self._render_assignment_rows(rows, indent)
+                    previous_non_comment = rows[-1][0]
+                    first = False
+                    index = end
+                    continue
             self.render(child, indent)
             if definition_needs_two and child.kind == "comment":
                 previous_non_comment = None
             elif child.kind != "comment":
                 previous_non_comment = child
             first = False
+            index += 1
         if children and self.out.current.strip():
             self.out.newline(indent)
+
+    def _is_assignment(self, node: Node) -> bool:
+        return node.kind == "assign" and node.value == "="
+
+    def _assignment_rows(
+        self, children: list[Node], start: int
+    ) -> tuple[list[tuple[Node, Node | None]], int]:
+        rows: list[tuple[Node, Node | None]] = []
+        index = start
+        while index < len(children):
+            node = children[index]
+            if not self._is_assignment(node):
+                break
+            if rows and node.blank_before:
+                break
+            comment: Node | None = None
+            index += 1
+            if (
+                index < len(children)
+                and children[index].kind == "comment"
+                and children[index].inline
+            ):
+                comment = children[index]
+                index += 1
+            rows.append((node, comment))
+        return rows, index
+
+    def _render_aligned_assignments(
+        self, rows: list[tuple[Node, Node | None]], indent: int
+    ) -> bool:
+        parts: list[tuple[str, str, Node | None]] = []
+        for node, comment in rows:
+            left = self.flat(node.children[0])
+            right = self.flat(node.children[1])
+            if left is None or right is None:
+                return False
+            parts.append((left, right, comment))
+        left_width = max(len(left) for left, _, _ in parts)
+        bodies = [f"{left.ljust(left_width)} = {right}" for left, right, _ in parts]
+        comment_col = max(len(body) for body in bodies) + 2
+        lines: list[str] = []
+        for body, (_, _, comment) in zip(bodies, parts, strict=True):
+            padding = "" if comment is None else " " * (comment_col - len(body))
+            line = body + padding + ("" if comment is None else comment.value)
+            if indent + len(line) > self.options.width:
+                return False
+            lines.append(line)
+        for i, line in enumerate(lines):
+            if i:
+                self.out.newline(indent)
+            self.out.write(line)
+        return True
+
+    def _render_assignment_rows(self, rows: list[tuple[Node, Node | None]], indent: int) -> None:
+        for i, (node, comment) in enumerate(rows):
+            if i:
+                self.out.newline(indent)
+            self.render(node, indent)
+            if comment is not None:
+                self.out.write("  " + comment.value)
 
     def _is_definition(self, node: Node) -> bool:
         return node.kind == "call" and node.value in {
@@ -307,15 +383,16 @@ class Renderer:
     def _render_index(self, node: Node, indent: int) -> None:
         base, index = node.children
         index_flat = self.flat(index)
-        reserve = len(index_flat) + 2 if index_flat is not None else 1
+        pad = self._inner_pad() if index_flat else ""
+        reserve = len(index_flat) + 2 + 2 * len(pad) if index_flat is not None else 1
         self.reserve += reserve
         try:
             self.render(base, indent)
         finally:
             self.reserve -= reserve
-        self.out.write("[")
-        if index_flat is not None and self._fits(index_flat + "]"):
-            self.out.write(index_flat)
+        self.out.write("[" + pad)
+        if index_flat is not None and self._fits(index_flat + pad + "]"):
+            self.out.write(index_flat + pad)
         else:
             self.render(index, indent)
         self.out.write("]")
@@ -612,6 +689,16 @@ class Renderer:
         if not args:
             self.out.write(")")
             return
+        if node.value in self.options.hanging:
+            handled = False
+            if node.value == "foreach":
+                handled = self._render_foreach_head(args, indent)
+            elif node.value == "for":
+                handled = self._render_head_group(args, indent, 1, 2)
+            if handled:
+                self.out.newline(indent)
+                self.out.write(")")
+                return
         first = self._flat_if_fits(args[0])
         if first is None or node.value not in self.options.hanging:
             self.out.newline(indent + self.options.indent)
@@ -621,16 +708,59 @@ class Renderer:
             return
         self.out.write(self._inner_pad() + first)
         rest = args[1:]
-        if node.value in {"foreach", "for"} and rest:
-            second = self._flat_if_fits(rest[0])
-            if second is not None:
-                self.out.write(" " + second)
-                rest = rest[1:]
         if rest:
             self.out.newline(indent + self.options.indent)
             self._render_block(rest, indent + self.options.indent)
         self.out.newline(indent)
         self.out.write(")")
+
+    def _render_foreach_head(self, args: list[Node], indent: int) -> bool:
+        index = 0
+        if args and args[0].kind == "atom" and args[0].value in FOREACH_MODIFIERS and len(args) > 2:
+            index = 1
+        if index >= len(args):
+            return False
+        var = args[index]
+        count = (
+            len([child for child in var.children if child.kind != "comment"])
+            if var.kind == "plist"
+            else 1
+        )
+        return self._render_head_group(args, indent, index + 1, count)
+
+    def _render_head_group(
+        self, args: list[Node], indent: int, prefix_count: int, payload_count: int
+    ) -> bool:
+        """Keep a form's leading semantic group on the head line when it fits."""
+        payload = args[prefix_count : prefix_count + payload_count]
+        if len(payload) < payload_count:
+            return False
+        body_indent = indent + self.options.indent
+        prefix = args[:prefix_count]
+        body = args[prefix_count + payload_count :]
+        head_flats = [self.flat(item) for item in [*prefix, *payload]]
+        if all(flat is not None for flat in head_flats):
+            joined = " ".join(flat for flat in head_flats if flat is not None)
+            if self._fits(joined):
+                self.out.write(self._inner_pad() + joined)
+                if body:
+                    self.out.newline(body_indent)
+                    self._render_block(body, body_indent)
+                return True
+        prefix_flats = [self.flat(item) for item in prefix]
+        if any(flat is None for flat in prefix_flats):
+            return False
+        prefix_text = " ".join(flat for flat in prefix_flats if flat is not None)
+        if not self._fits(prefix_text):
+            return False
+        self.out.write(self._inner_pad() + prefix_text)
+        for item in payload:
+            self.out.newline(body_indent)
+            self.render(item, body_indent)
+        if body:
+            self.out.newline(body_indent)
+            self._render_block(body, body_indent)
+        return True
 
     def _render_generic_call(self, node: Node, indent: int) -> None:
         flat = self.flat(node)
@@ -706,7 +836,10 @@ class Renderer:
         if node.kind == "index":
             base = self.flat(node.children[0])
             index = self.flat(node.children[1])
-            return None if base is None or index is None else f"{base}[{index}]"
+            if base is None or index is None:
+                return None
+            left, right = self._pad_pair(index)
+            return f"{base}[{left}{index}{right}]"
         if node.kind == "prefix":
             operand = self.flat(node.children[0])
             return None if operand is None else node.value + operand
@@ -735,7 +868,9 @@ class Renderer:
             items = [self.flat(c) for c in node.children if c.kind != "comment"]
             if any(i is None for i in items):
                 return None
-            return "[" + " ".join(i for i in items if i is not None) + "]"
+            body = " ".join(i for i in items if i is not None)
+            left, right = self._pad_pair(body)
+            return f"[{left}{body}{right}]"
         return self.flat(node)
 
     def _flat_plist(self, node: Node) -> str | None:
@@ -744,7 +879,8 @@ class Renderer:
             if any(i is None for i in items):
                 return None
             body = " ".join(i for i in items if i is not None)
-            return f"[{body}]"
+            left, right = self._pad_pair(body)
+            return f"[{left}{body}{right}]"
         items = [self.flat(c) for c in node.children if c.kind != "comment"]
         if any(i is None for i in items):
             return None

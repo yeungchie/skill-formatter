@@ -196,13 +196,65 @@ def test_tight_brackets_is_configurable() -> None:
     spaced = frozenset(CATEGORIES) - {"tight-brackets"}
     assert format_source("foo( a b c )").text == "foo(a b c)\n"
     assert format_source("{ nil ,@l_body }").text == "{nil ,@l_body}\n"
+    assert format_source("[ 1 2 3 ]").text == "[1 2 3]\n"
+    assert format_source("a[ 0 ]").text == "a[0]\n"
     assert format_source("foo(a b c)", Options(categories=spaced)).text == "foo( a b c )\n"
     assert format_source("{nil ,@l_body}", Options(categories=spaced)).text == (
         "{ nil ,@l_body }\n"
     )
+    assert format_source("[1 2 3]", Options(categories=spaced)).text == "[ 1 2 3 ]\n"
+    assert format_source("a[0]", Options(categories=spaced)).text == "a[ 0 ]\n"
     assert format_source("errset(foo(a) nil)", Options(categories=spaced)).text == (
         "errset( foo( a ) nil )\n"
     )
+
+
+def test_foreach_keeps_head_when_it_fits() -> None:
+    source = "foreach(mapcar x list(1 2 3) long_long_command)"
+    assert format_source(source, Options(width=40)).text == (
+        "foreach(mapcar x list(1 2 3)\n    long_long_command\n)\n"
+    )
+    assert format_source(source, Options(width=21)).text == (
+        "foreach(mapcar x\n    list(1 2 3)\n    long_long_command\n)\n"
+    )
+    plain = "foreach(x list(1 2 3) do_it)"
+    assert format_source(plain, Options(width=24)).text == ("foreach(x list(1 2 3)\n    do_it\n)\n")
+    assert format_source(plain, Options(width=20)).text == (
+        "foreach(x\n    list(1 2 3)\n    do_it\n)\n"
+    )
+
+
+def test_foreach_multiple_lists_stay_with_variables() -> None:
+    source = "foreach((x y) list(1 2) list(3 4) body_long)"
+    assert format_source(source, Options(width=40)).text == (
+        "foreach((x y) list(1 2) list(3 4)\n    body_long\n)\n"
+    )
+    assert format_source(source, Options(width=30)).text == (
+        "foreach((x y)\n    list(1 2)\n    list(3 4)\n    body_long\n)\n"
+    )
+
+
+def test_assignments_align_without_blank_lines() -> None:
+    source = "a = 1\nab = 2  ; ab is a variable\nabc = 33  ; abc is a variable\n"
+    expected = "a   = 1\nab  = 2   ; ab is a variable\nabc = 33  ; abc is a variable\n"
+    assert format_source(source).text == expected
+
+
+def test_assignment_alignment_groups_break_on_blank_lines_and_other_forms() -> None:
+    source = "a = 1\nab = 2\n\nc = 3\nd = 4\nfoo(1)\ne = 5\n"
+    expected = "a  = 1\nab = 2\n\nc = 3\nd = 4\nfoo(1)\ne = 5\n"
+    assert format_source(source).text == expected
+
+
+def test_assignment_alignment_can_be_disabled() -> None:
+    cats = frozenset(CATEGORIES) - {"align-assignments"}
+    source = "a = 1\nabc = 33\n"
+    assert format_source(source, Options(categories=cats)).text == source
+
+
+def test_assignment_alignment_yields_to_line_width() -> None:
+    source = "a = 1  ; x\nabc = 333  ; y\n"
+    assert format_source(source, Options(width=13)).text == source
 
 
 def test_comment_stays_with_following_definition() -> None:

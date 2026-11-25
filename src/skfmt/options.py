@@ -11,6 +11,7 @@ CATEGORIES: tuple[str, ...] = (
     "indent",
     "spacing",
     "tight-brackets",
+    "align-assignments",
     "wrapping",
     "comments",
 )
