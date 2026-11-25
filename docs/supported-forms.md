@@ -60,6 +60,8 @@ foo1(
 
 不会拆成 `foo1(foo2(` 开头的形状。
 
+括号内侧默认紧贴，写 `foo(a b c)`。关闭 `tight-brackets` 分类后改为 `foo( a b c )`；该选项同时作用于花括号 `{x y}` / `{ x y }`，方括号 `[]` 不受影响。
+
 ### S 风格调用
 
 在代码位置，符号开头的括号列表会转成 C 风格：
@@ -155,7 +157,7 @@ _TypeCache[name]
 ### 花括号体
 
 ```lisp
-{ nil ,@l_body }
+{nil ,@l_body}
 ```
 
 ```lisp
@@ -165,7 +167,7 @@ _TypeCache[name]
 }
 ```
 
-单行时写 `{ x y }`；作为调用参数参与三档排布，自身仍放不下时 `{` 与 `}` 各占边界，体缩进 4 格。
+单行时默认写 `{x y}`；关闭 `tight-brackets` 后写 `{ x y }`。作为调用参数参与三档排布，自身仍放不下时 `{` 与 `}` 各占边界，体缩进 4 格。
 
 ### `list` 调用
 
@@ -359,18 +361,18 @@ case(x
 按普通调用处理，不做特殊排版，参数按行宽三档排布：
 
 ```lisp
-errset({ nil ,@l_body } nil)
+errset({nil ,@l_body} nil)
 ```
 
 ```lisp
 errset(
-    { nil ,@l_body } nil
+    {nil ,@l_body} nil
 )
 ```
 
 ```lisp
 errset(
-    { nil ,@l_body }
+    {nil ,@l_body}
     nil
 )
 ```
@@ -475,6 +477,7 @@ b = 2
 
 - 缩进（按括号深度，4 空格）
 - 行内空白归一（`--skip spacing` 保留原间距）
+- 括号内侧空格：默认紧贴；关闭 `tight-brackets` 后按源间距保留，不强制加空格
 - 注释缩进（`--skip comments` 保留原列）
 - 空行归一（`--skip blank-lines` 保留原数量）
 - 行尾与结尾换行（`--skip eol` 保留）

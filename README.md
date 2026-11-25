@@ -133,6 +133,7 @@ skfmt config template > skfmt.toml   # 打印配置模板
 | `blank-lines` | 连续空行压成一个 |
 | `indent` | 4 空格结构缩进 |
 | `spacing` | 行内单空格、尾注释前两空格 |
+| `tight-brackets` | 括号内侧紧贴：`foo(a b)`、`{x y}`；关闭后写 `foo( a b )`、`{ x y }` |
 | `wrapping` | 结构重排与折行 |
 | `comments` | 独立注释重排缩进 |
 

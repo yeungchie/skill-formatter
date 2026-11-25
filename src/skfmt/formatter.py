@@ -255,6 +255,7 @@ class Renderer:
         if not items:
             self.out.write(")")
             return
+        self.out.write(self._inner_pad())
         self.render(items[0], indent)
         if len(items) > 1:
             self.out.newline(indent + self.options.indent)
@@ -371,11 +372,12 @@ class Renderer:
             inline.append(rest.pop(0))
         sig_flat = " ".join(self.flat(a) or "" for a in sig if a.kind != "comment")
         body = rest
-        self.out.write(node.value + "(" + sig_flat)
+        pad = self._inner_pad() if sig_flat else ""
+        self.out.write(node.value + "(" + pad + sig_flat)
         for comment in inline:
             self.out.write("  " + comment.value)
         if not body:
-            self.out.write(")")
+            self.out.write(")" if inline else pad + ")")
             return
         if body:
             self.out.newline(indent + self.options.indent)
@@ -388,9 +390,10 @@ class Renderer:
         name = self.flat(args[0]) if args else ""
         supers = self.flat(args[1]) if len(args) > 1 else "()"
         slots = args[2] if len(args) > 2 else None
-        head = f"defclass({name} {supers}"
+        pad = self._inner_pad()
+        head = f"defclass({pad}{name} {supers}"
         if slots is None or not slots.children:
-            self.out.write(head + " ())")
+            self.out.write(head + " ()" + pad + ")")
             return
         self.out.write(head + " (")
         self.out.newline(indent + self.options.indent)
@@ -441,6 +444,7 @@ class Renderer:
         args = node.children
         self.out.write(node.value + "(")
         if node.value in self.options.hanging:
+            self.out.write(self._inner_pad())
             self._render_bindings(args[0], indent)
         else:
             self.out.newline(indent + self.options.indent)
@@ -466,7 +470,7 @@ class Renderer:
                 self.out.newline(indent + self.options.indent)
                 self.render(args[0], indent + self.options.indent)
             else:
-                self.out.write(first)
+                self.out.write(self._inner_pad() + first)
             clauses = args[1:]
         else:
             clauses = args
@@ -503,7 +507,10 @@ class Renderer:
                 for i, (head, body) in enumerate(zip(heads, bodies, strict=True)):
                     if i:
                         self.out.newline(indent)
-                    self.out.write("(" + head + " " * (width - len(head) + 1) + body + ")")
+                    left, right = self._pad_pair(head + body)
+                    self.out.write(
+                        "(" + left + head + " " * (width - len(head) + 1) + body + right + ")"
+                    )
                 return
         for i, clause in enumerate(clauses):
             if i:
@@ -527,7 +534,7 @@ class Renderer:
                     self.out.newline(indent + self.options.indent)
                     self.render(args[0], indent + self.options.indent)
                 else:
-                    self.out.write(cond)
+                    self.out.write(self._inner_pad() + cond)
             rest = args[1:]
             if rest:
                 self.out.newline(indent + self.options.indent)
@@ -542,7 +549,7 @@ class Renderer:
             self.render(args[0], indent + self.options.indent)
             self.out.newline(indent)
         else:
-            self.out.write(cond)
+            self.out.write(self._inner_pad() + cond)
         index = 1
         while index < len(args):
             arg = args[index]
@@ -583,14 +590,17 @@ class Renderer:
         inline: list[Node] = []
         while rest and rest[0].kind == "comment" and rest[0].inline:
             inline.append(rest.pop(0))
-        self.out.write("lambda(" + (sig or ""))
+        pad = self._inner_pad() if sig else ""
+        self.out.write("lambda(" + pad + (sig or ""))
         for comment in inline:
             self.out.write("  " + comment.value)
         if rest:
             self.out.newline(indent + self.options.indent)
             self._render_block(rest, indent + self.options.indent)
             self.out.newline(indent)
-        self.out.write(")")
+            self.out.write(")")
+        else:
+            self.out.write(")" if inline else pad + ")")
 
     def _render_control(self, node: Node, indent: int) -> None:
         flat = self.flat(node)
@@ -609,7 +619,7 @@ class Renderer:
             self.out.newline(indent)
             self.out.write(")")
             return
-        self.out.write(first)
+        self.out.write(self._inner_pad() + first)
         rest = args[1:]
         if node.value in {"foreach", "for"} and rest:
             second = self._flat_if_fits(rest[0])
@@ -632,7 +642,7 @@ class Renderer:
             args = node.children
             first = self._flat_if_fits(args[0]) if node.value in self.options.hanging else None
             if first is not None:
-                self.out.write(first)
+                self.out.write(self._inner_pad() + first)
                 args = args[1:]
             if args:
                 body_indent = indent + self.options.indent
@@ -687,7 +697,10 @@ class Renderer:
             return self._flat_plist(node)
         if node.kind == "group":
             inner = self.flat(node.children[0])
-            return None if inner is None else f"({inner})"
+            if inner is None:
+                return None
+            left, right = self._pad_pair(inner)
+            return f"({left}{inner}{right})"
         if node.kind == "call":
             return self._flat_call(node)
         if node.kind == "index":
@@ -703,7 +716,8 @@ class Renderer:
                 return None
             if node.kind == "unary":
                 if self._unary_needs_parens(node.children[0]):
-                    operand = f"({operand})"
+                    left, right = self._pad_pair(operand)
+                    operand = f"({left}{operand}{right})"
                 return node.value + operand
             return operand + node.value
         if node.kind in {"binary", "assign"}:
@@ -735,9 +749,10 @@ class Renderer:
         if any(i is None for i in items):
             return None
         body = " ".join(i for i in items if i is not None)
+        left, right = self._pad_pair(body)
         if node.value == "{":
-            return "{}" if not body else f"{{ {body} }}"
-        return f"({body})"
+            return f"{{{left}{body}{right}}}"
+        return f"({left}{body}{right})"
 
     def _flat_call(self, node: Node) -> str | None:
         if node.value in {"procedure", "defmacro", "defmethod", "defclass", "inScheme"}:
@@ -772,7 +787,16 @@ class Renderer:
         if any(a is None for a in args):
             return None
         body = " ".join(a for a in args if a is not None)
-        return f"{node.value}({body})"
+        left, right = self._pad_pair(body)
+        return f"{node.value}({left}{body}{right})"
+
+    def _pad_pair(self, body: str) -> tuple[str, str]:
+        if not body or self.options.enabled("tight-brackets"):
+            return "", ""
+        return " ", " "
+
+    def _inner_pad(self) -> str:
+        return "" if self.options.enabled("tight-brackets") else " "
 
 
 def _parse(text: str) -> tuple[LexResult, Node, list[str], list[tuple[int, int]]]:
@@ -820,6 +844,7 @@ def _format_conservative(text: str, lexed: LexResult, options: Options) -> str:
     indent_enabled = options.enabled("indent")
     spacing_enabled = options.enabled("spacing")
     comments_enabled = options.enabled("comments")
+    tight_brackets = options.enabled("tight-brackets")
 
     def flush() -> None:
         nonlocal current
@@ -850,12 +875,27 @@ def _format_conservative(text: str, lexed: LexResult, options: Options) -> str:
                 if token.kind == "comment":
                     if current.strip():
                         current += "  "
+                elif tight_brackets:
+                    if token.kind in CLOSE_KINDS:
+                        pass
+                    elif previous in {"lparen", "lbracket", "lbrace"}:
+                        pass
+                    elif not gap:
+                        pass
+                    elif previous == "prefix":
+                        pass
+                    elif token.kind == "prefix":
+                        if current.strip():
+                            current += " "
+                    else:
+                        current += " "
+                elif token.kind in CLOSE_KINDS:
+                    if gap and previous not in {"lparen", "lbracket", "lbrace"}:
+                        current += " "
                 elif not gap:
                     pass
-                elif token.kind in CLOSE_KINDS:
-                    pass
-                elif previous in {"lparen", "lbracket"}:
-                    pass
+                elif previous in {"lparen", "lbracket", "lbrace"}:
+                    current += " "
                 elif previous == "prefix":
                     pass
                 elif token.kind == "prefix":

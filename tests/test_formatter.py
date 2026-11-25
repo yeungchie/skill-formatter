@@ -182,15 +182,26 @@ def test_nested_calls_break_outermost_first() -> None:
 
 def test_errset_brace_follows_call_wrapping() -> None:
     source = "errset({ nil ,@l_body } nil)"
-    assert format_source(source).text == source + "\n"
-    assert format_source(source, Options(width=24)).text == (
-        "errset(\n    { nil ,@l_body } nil\n)\n"
+    assert format_source(source).text == "errset({nil ,@l_body} nil)\n"
+    assert format_source(source, Options(width=22)).text == ("errset(\n    {nil ,@l_body} nil\n)\n")
+    assert format_source(source, Options(width=21)).text == (
+        "errset(\n    {nil ,@l_body}\n    nil\n)\n"
     )
-    assert format_source(source, Options(width=23)).text == (
-        "errset(\n    { nil ,@l_body }\n    nil\n)\n"
-    )
-    assert format_source(source, Options(width=19)).text == (
+    assert format_source(source, Options(width=17)).text == (
         "errset(\n    {\n        nil\n        ,@l_body\n    }\n    nil\n)\n"
+    )
+
+
+def test_tight_brackets_is_configurable() -> None:
+    spaced = frozenset(CATEGORIES) - {"tight-brackets"}
+    assert format_source("foo( a b c )").text == "foo(a b c)\n"
+    assert format_source("{ nil ,@l_body }").text == "{nil ,@l_body}\n"
+    assert format_source("foo(a b c)", Options(categories=spaced)).text == "foo( a b c )\n"
+    assert format_source("{nil ,@l_body}", Options(categories=spaced)).text == (
+        "{ nil ,@l_body }\n"
+    )
+    assert format_source("errset(foo(a) nil)", Options(categories=spaced)).text == (
+        "errset( foo( a ) nil )\n"
     )
 
 

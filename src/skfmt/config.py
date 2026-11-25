@@ -249,6 +249,9 @@ eol = true
 blank-lines = true
 indent = true
 spacing = true
+# Keep delimiters tight: true writes foo(a b) and {x y};
+# false writes foo( a b ) and { x y }.
+tight-brackets = true
 wrapping = true
 comments = true
 
@@ -299,6 +302,8 @@ eol = true
 blank-lines = true
 indent = true
 spacing = true
+# 括号内侧是否紧凑：true 写 foo(a b) 与 {x y}；false 写 foo( a b ) 与 { x y }。
+tight-brackets = true
 wrapping = true
 comments = true
 
