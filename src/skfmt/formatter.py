@@ -66,8 +66,9 @@ class LineBuilder:
 
 
 class Renderer:
-    def __init__(self, options: Options) -> None:
+    def __init__(self, options: Options, top_level_spacing: bool = True) -> None:
         self.options = options
+        self.top_level_spacing = top_level_spacing
         self.out = LineBuilder(options.base_indent or 0)
         self.reserve = 0
         self.node_info: dict[int, tuple[int, int, int]] = {}
@@ -84,7 +85,7 @@ class Renderer:
     def render(self, node: Node, indent: int, top: bool = False) -> None:
         start_line = len(self.out.lines)
         if node.kind == "seq":
-            self._render_block(node.children, indent)
+            self._render_block(node.children, indent, top_level=top and self.top_level_spacing)
         elif node.kind in {"atom", "string"}:
             self.out.write(node.value)
         elif node.kind == "comment":
@@ -164,7 +165,7 @@ class Renderer:
             self.out.newline(0)
             self.out.write(part)
 
-    def _render_block(self, children: list[Node], indent: int) -> None:
+    def _render_block(self, children: list[Node], indent: int, top_level: bool = False) -> None:
         first = True
         previous_non_comment: Node | None = None
         index = 0
@@ -180,22 +181,25 @@ class Renderer:
             blanks = 0
             definition_needs_two = False
             if not first:
-                leading_comment = False
-                if child.kind == "comment":
-                    for later in children[index + 1 :]:
-                        if later.kind != "comment":
-                            leading_comment = self._is_definition(later)
-                            break
-                definition_needs_two = (
-                    self.options.enabled("blank-lines")
-                    and previous_non_comment is not None
-                    and self._is_definition(previous_non_comment)
-                    and (self._is_definition(child) or leading_comment)
-                )
-                if definition_needs_two:
-                    blanks = 2
-                elif child.blank_before:
-                    blanks = 1 if self.options.enabled("blank-lines") else child.blank_before
+                if top_level:
+                    blanks = self._top_level_separator(children, index, previous_non_comment)
+                else:
+                    leading_comment = False
+                    if child.kind == "comment":
+                        for later in children[index + 1 :]:
+                            if later.kind != "comment":
+                                leading_comment = self._is_definition(later)
+                                break
+                    definition_needs_two = (
+                        self.options.enabled("blank-lines")
+                        and previous_non_comment is not None
+                        and self._is_definition(previous_non_comment)
+                        and (self._is_definition(child) or leading_comment)
+                    )
+                    if definition_needs_two:
+                        blanks = 2
+                    elif child.blank_before:
+                        blanks = 1 if self.options.enabled("blank-lines") else child.blank_before
             if blanks:
                 self.out.lines.extend([""] * blanks)
             if self.options.enabled("align-assignments") and self._is_assignment(child):
@@ -216,6 +220,23 @@ class Renderer:
             index += 1
         if children and self.out.current.strip():
             self.out.newline(indent)
+
+    def _top_level_separator(self, children: list[Node], index: int, previous: Node | None) -> int:
+        child = children[index]
+        if not self.options.enabled("blank-lines"):
+            return child.blank_before
+        prev = children[index - 1] if index else None
+        if prev is not None and prev.kind == "comment" and not prev.inline:
+            return 1 if child.blank_before else 0
+        target = child
+        if child.kind == "comment":
+            for later in children[index + 1 :]:
+                if later.kind != "comment":
+                    target = later
+                    break
+        if previous is not None and self._is_assignment(previous) and self._is_assignment(target):
+            return 1 if child.blank_before else 0
+        return 2
 
     def _is_assignment(self, node: Node) -> bool:
         return node.kind == "assign" and node.value == "="
@@ -1059,7 +1080,9 @@ def _format_conservative(text: str, lexed: LexResult, options: Options) -> str:
     return _apply_eol(lines, lexed, options)
 
 
-def format_source(text: str, options: Options | None = None) -> FormatResult:
+def format_source(
+    text: str, options: Options | None = None, *, top_level_spacing: bool = True
+) -> FormatResult:
     opts = (options or Options()).normalized()
     try:
         lexed, root, parse_warnings, opaque = _parse(text)
@@ -1089,7 +1112,7 @@ def format_source(text: str, options: Options | None = None) -> FormatResult:
             raise FormatError("internal verification failed: structure changed")
         return FormatResult(output, output != text, warnings, opaque)
 
-    renderer = Renderer(opts)
+    renderer = Renderer(opts, top_level_spacing=top_level_spacing)
     lines = renderer.render_root(root)
     output = _apply_eol(lines, lexed, opts)
 
@@ -1124,7 +1147,11 @@ def _format_fragment(fragment: str, options: Options) -> FormatResult:
     base = options.base_indent
     if base is None:
         base = _fragment_indent(fragment)
-    return format_source(fragment, replace(options, base_indent=base, warnings=[]))
+    return format_source(
+        fragment,
+        replace(options, base_indent=base, warnings=[]),
+        top_level_spacing=False,
+    )
 
 
 def _merge_spans(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:

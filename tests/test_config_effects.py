@@ -36,7 +36,7 @@ def test_categories_eol(tmp_path: Path) -> None:
         "foo( 1 2 )\r\nbar(3 4)",
         _config(tmp_path, "[categories]\neol = false\n"),
     )
-    assert result.text == "foo(1 2)\r\nbar(3 4)"
+    assert result.text == "foo(1 2)\r\n\r\n\r\nbar(3 4)"
 
 
 def test_categories_blank_lines(tmp_path: Path) -> None:

@@ -242,8 +242,28 @@ def test_assignments_align_without_blank_lines() -> None:
 
 def test_assignment_alignment_groups_break_on_blank_lines_and_other_forms() -> None:
     source = "a = 1\nab = 2\n\nc = 3\nd = 4\nfoo(1)\ne = 5\n"
-    expected = "a  = 1\nab = 2\n\nc = 3\nd = 4\nfoo(1)\ne = 5\n"
+    expected = "a  = 1\nab = 2\n\nc = 3\nd = 4\n\n\nfoo(1)\n\n\ne = 5\n"
     assert format_source(source).text == expected
+
+
+def test_top_level_statements_get_two_blank_lines() -> None:
+    source = "foo(1)\nbar(2)\nbaz(3)\n"
+    assert format_source(source).text == "foo(1)\n\n\nbar(2)\n\n\nbaz(3)\n"
+
+
+def test_top_level_assignment_groups_keep_one_blank_line() -> None:
+    source = "a = 1\nb = 2\n\nc = 3\n"
+    assert format_source(source).text == "a = 1\nb = 2\n\nc = 3\n"
+
+
+def test_top_level_comment_stays_with_following_statement() -> None:
+    source = "foo(1)\n; doc\nbar(2)\n"
+    assert format_source(source).text == "foo(1)\n\n\n; doc\nbar(2)\n"
+
+
+def test_nested_statements_keep_single_blank_lines() -> None:
+    source = "procedure(a()\nfoo(1)\nbar(2)\n)\n"
+    assert format_source(source).text == "procedure(a()\n    foo(1)\n    bar(2)\n)\n"
 
 
 def test_assignment_alignment_can_be_disabled() -> None:

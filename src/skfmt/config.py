@@ -246,6 +246,7 @@ indent = 4
 # "wrapping" requires indent, spacing and comments; disabling any of them
 # turns wrapping off and keeps the original line breaks.
 eol = true
+# Collapse repeated blank lines; top-level statements are separated by two.
 blank-lines = true
 indent = true
 spacing = true
@@ -301,6 +302,7 @@ indent = 4
 # "wrapping" 需要 indent、spacing 与 comments；关闭其中任一分类会关闭 wrapping，
 # 保留原有换行位置。
 eol = true
+# 连续空行压成一个；顶层语句之间保留两个空行。
 blank-lines = true
 indent = true
 spacing = true

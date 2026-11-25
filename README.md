@@ -147,7 +147,7 @@ skfmt config template > skfmt.toml   # 打印配置模板
 
 `safety.unknown = "conservative"` 只适用于整文件格式化；与 `--lines` 组合且遇到未确认语法时会报错。
 
-顶层函数/类定义（`procedure`、`defmacro`、`defmethod`、`defclass`）之间固定保留两个空行；紧贴下一个定义的注释随该定义移动。
+顶层语句之间固定保留两个空行；连续赋值语句成组保持相邻（源中已有空行则压成一个）；紧贴语句的注释随该语句移动。选区片段不套用该规则。
 
 ## 配置
 
