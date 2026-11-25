@@ -66,6 +66,7 @@ class Renderer:
     def __init__(self, options: Options) -> None:
         self.options = options
         self.out = LineBuilder(options.base_indent or 0)
+        self.reserve = 0
         self.node_info: dict[int, tuple[int, int, int]] = {}
 
     # -- public --------------------------------------------------------
@@ -105,7 +106,11 @@ class Renderer:
             if flat is not None and self._fits(flat):
                 self.out.write(flat)
             elif node.kind == "postfix":
-                self.render(node.children[0], indent)
+                self.reserve += len(node.value)
+                try:
+                    self.render(node.children[0], indent)
+                finally:
+                    self.reserve -= len(node.value)
                 self.out.write(node.value)
             else:
                 self.out.write(node.value)
@@ -128,7 +133,13 @@ class Renderer:
     def _fits(self, text: str) -> bool:
         if "\n" in text:
             return False
-        return len(self.out.current) + len(text) <= self.options.width
+        return len(self.out.current) + len(text) + self.reserve <= self.options.width
+
+    def _flat_if_fits(self, node: Node) -> str | None:
+        flat = self.flat(node)
+        if flat is None or not self._fits(flat):
+            return None
+        return flat
 
     def _unary_needs_parens(self, node: Node) -> bool:
         return node.kind in {"binary", "assign", "call", "plist"}
@@ -266,7 +277,13 @@ class Renderer:
 
     def _render_binary(self, node: Node, indent: int) -> None:
         if node.value in {"->", "~>"}:
-            self.render(node.children[0], indent)
+            right_flat = self.flat(node.children[1])
+            reserve = len(node.value) + (len(right_flat) if right_flat is not None else 0)
+            self.reserve += reserve
+            try:
+                self.render(node.children[0], indent)
+            finally:
+                self.reserve -= reserve
             self.out.write(node.value)
             self.render(node.children[1], indent)
             return
@@ -288,11 +305,16 @@ class Renderer:
 
     def _render_index(self, node: Node, indent: int) -> None:
         base, index = node.children
-        self.render(base, indent)
+        index_flat = self.flat(index)
+        reserve = len(index_flat) + 2 if index_flat is not None else 1
+        self.reserve += reserve
+        try:
+            self.render(base, indent)
+        finally:
+            self.reserve -= reserve
         self.out.write("[")
-        flat = self.flat(index)
-        if flat is not None and self._fits(flat + "]"):
-            self.out.write(flat)
+        if index_flat is not None and self._fits(index_flat + "]"):
+            self.out.write(index_flat)
         else:
             self.render(index, indent)
         self.out.write("]")
@@ -300,7 +322,9 @@ class Renderer:
     # -- calls ---------------------------------------------------------
     def _render_call(self, node: Node, indent: int) -> None:
         head = node.value
-        if head in {"procedure", "defmacro", "defmethod"}:
+        if not node.children:
+            self.out.write(head + "()")
+        elif head in {"procedure", "defmacro", "defmethod"}:
             self._render_definition(node, indent)
         elif head == "defclass":
             self._render_defclass(node, indent)
@@ -439,7 +463,7 @@ class Renderer:
         self.out.write(node.value + "(")
         clauses: list[Node]
         if node.value == "case" and args:
-            first = self.flat(args[0])
+            first = self._flat_if_fits(args[0])
             if first is None or node.value not in self.options.hanging:
                 self.out.newline(indent + self.options.indent)
                 self.render(args[0], indent + self.options.indent)
@@ -500,7 +524,7 @@ class Renderer:
                 return
             self.out.write("if(")
             if args:
-                cond = self.flat(args[0])
+                cond = self._flat_if_fits(args[0])
                 if cond is None or "if" not in self.options.hanging:
                     self.out.newline(indent + self.options.indent)
                     self.render(args[0], indent + self.options.indent)
@@ -514,7 +538,7 @@ class Renderer:
             self.out.write(")")
             return
         self.out.write("if(")
-        cond = self.flat(args[0])
+        cond = self._flat_if_fits(args[0])
         if cond is None or "if" not in self.options.hanging:
             self.out.newline(indent + self.options.indent)
             self.render(args[0], indent + self.options.indent)
@@ -608,7 +632,7 @@ class Renderer:
         if not args:
             self.out.write(")")
             return
-        first = self.flat(args[0])
+        first = self._flat_if_fits(args[0])
         if first is None or node.value not in self.options.hanging:
             self.out.newline(indent + self.options.indent)
             self._render_block(args, indent + self.options.indent)
@@ -618,7 +642,7 @@ class Renderer:
         self.out.write(first)
         rest = args[1:]
         if node.value in {"foreach", "for"} and rest:
-            second = self.flat(rest[0])
+            second = self._flat_if_fits(rest[0])
             if second is not None:
                 self.out.write(" " + second)
                 rest = rest[1:]
@@ -636,23 +660,27 @@ class Renderer:
         self.out.write(node.value + "(")
         if node.children:
             args = node.children
-            first = self.flat(args[0]) if node.value in self.options.hanging else None
+            first = self._flat_if_fits(args[0]) if node.value in self.options.hanging else None
             if first is not None:
                 self.out.write(first)
                 args = args[1:]
             if args:
-                self.out.newline(indent + self.options.indent)
-                self._render_args(
-                    args,
-                    indent + self.options.indent,
-                    one_per_line=node.value == "list",
-                )
+                body_indent = indent + self.options.indent
+                self.out.newline(body_indent)
+                self._render_args(args, body_indent, pack=node.value != "list")
         self.out.newline(indent)
         self.out.write(")")
 
-    def _render_args(self, args: list[Node], indent: int, one_per_line: bool = False) -> None:
+    def _render_args(self, args: list[Node], indent: int, pack: bool = True) -> None:
+        flats = [self.flat(arg) for arg in args]
+        if pack and all(flat is not None for flat in flats):
+            packed = " ".join(flat for flat in flats if flat is not None)
+            if indent + len(packed) + self.reserve <= self.options.width:
+                self.out.write(packed)
+                self.out.newline(indent)
+                return
         first = True
-        for arg in args:
+        for arg, flat in zip(args, flats, strict=True):
             if arg.kind == "comment":
                 if arg.inline and not first:
                     self.out.write("  " + arg.value)
@@ -663,25 +691,11 @@ class Renderer:
                 self.out.newline(indent)
                 first = True
                 continue
-            flat = self.flat(arg)
-            if one_per_line:
-                if not first:
-                    self.out.newline(indent)
-                if flat is not None:
-                    self.out.write(flat)
-                else:
-                    self.render(arg, indent)
-                first = False
-                continue
-            if (
-                not first
-                and flat is not None
-                and len(self.out.current) + 1 + len(flat) <= self.options.width
-            ):
-                self.out.write(" " + flat)
+            if not first:
+                self.out.newline(indent)
+            if flat is not None and indent + len(flat) + self.reserve <= self.options.width:
+                self.out.write(flat)
             else:
-                if not first:
-                    self.out.newline(indent)
                 self.render(arg, indent)
             first = False
         if not first:

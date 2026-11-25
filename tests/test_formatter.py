@@ -132,9 +132,52 @@ def test_two_blank_lines_between_definitions() -> None:
 
 def test_list_wraps_one_element_per_line() -> None:
     assert format_source("list(1 2 3333)").text == "list(1 2 3333)\n"
+    assert format_source("list(1 2 3333)", Options(width=13)).text == (
+        "list(\n    1\n    2\n    3333\n)\n"
+    )
     long = 'list("' + "a" * 80 + '" "' + "b" * 80 + '")'
     expected = 'list(\n    "' + "a" * 80 + '"\n    "' + "b" * 80 + '"\n)\n'
     assert format_source(long).text == expected
+
+
+def test_arguments_wrap_in_three_tiers() -> None:
+    source = "myfunction(aaaa bbbb cccc)"
+    assert format_source(source, Options(width=40)).text == source + "\n"
+    assert format_source(source, Options(width=25)).text == ("myfunction(\n    aaaa bbbb cccc\n)\n")
+    assert format_source(source, Options(width=17)).text == (
+        "myfunction(\n    aaaa\n    bbbb\n    cccc\n)\n"
+    )
+
+
+def test_wrapped_arguments_never_mix_packed_and_split_lines() -> None:
+    source = "myfunction(aaaa bbbb ccccccccccccc)"
+    result = format_source(source, Options(width=25)).text
+    assert result == "myfunction(\n    aaaa\n    bbbb\n    ccccccccccccc\n)\n"
+
+
+def test_second_tier_keeps_nested_indent() -> None:
+    source = "let((x)\nmyfunction(aaaa bbbb cccc)\n)"
+    expected = "let((x)\n    myfunction(\n        aaaa bbbb cccc\n    )\n)\n"
+    assert format_source(source, Options(width=29)).text == expected
+
+
+def test_nested_calls_break_outermost_first() -> None:
+    source = "foo1(foo2(a b c))"
+    assert format_source(source, Options(width=16)).text == "foo1(\n    foo2(a b c)\n)\n"
+    deep = "foo1(foo2(foo3(aaaaaaaaaa bbbbbbbbbb)))"
+    result = format_source(deep, Options(width=20)).text
+    assert result == (
+        "foo1(\n"
+        "    foo2(\n"
+        "        foo3(\n"
+        "            aaaaaaaaaa\n"
+        "            bbbbbbbbbb\n"
+        "        )\n"
+        "    )\n"
+        ")\n"
+    )
+    assert "foo1(foo2(" not in result
+    assert "foo2(foo3(" not in result
 
 
 def test_comment_stays_with_following_definition() -> None:
