@@ -11,8 +11,8 @@
 | 行注释 `; ...` | 是 | 正文逐字保留；独立注释重排缩进，尾注释前两个空格 |
 | 前缀 `'`、`` ` ``、`,`、`,@`、`#.` | 是 | 与后续 form 紧贴，不插空格 |
 | 括号 `()`、方括号 `[]`、花括号 `{}` | 是 | 分别按调用/索引/列表与 progn 体处理 |
-| CRLF / LF | 是 | 默认输出 LF；`--skip eol` 保留源行尾 |
-| 空行 | 是 | 默认连续空行压成一个；`--skip blank-lines` 保留原数量 |
+| CRLF / LF | 是 | 默认输出 LF；关闭 `eol` 分类后保留源行尾 |
+| 空行 | 是 | 默认连续空行压成一个；关闭 `blank-lines` 分类后保留原数量 |
 
 ## 调用与表达式
 
@@ -60,7 +60,7 @@ foo1(
 
 不会拆成 `foo1(foo2(` 开头的形状。
 
-括号内侧默认紧贴，写 `foo(a b c)`。关闭 `tight-brackets` 分类后改为 `foo( a b c )`；该选项同时作用于花括号 `{x y}` / `{ x y }`，方括号 `[]` 不受影响。
+括号内侧默认紧贴，写 `foo(a b c)`。关闭 `tight-brackets` 分类后改为 `foo( a b c )`；该选项同时作用于花括号 `{x y}` / `{ x y }` 与方括号 `[1 2]` / `[ 1 2 ]`。
 
 ### S 风格调用
 
@@ -152,7 +152,7 @@ _TypeCache[name]
 _TypeCache[name]
 ```
 
-索引整体保持紧贴，不在 `[`/`]` 内侧插入空格。
+索引默认紧贴；关闭 `tight-brackets` 后写 `_TypeCache[ name ]`。
 
 ### 花括号体
 
@@ -310,17 +310,34 @@ while(i <= n
 ### `foreach` / `for`
 
 ```lisp
-foreach(item l_items
+foreach(item items
 a = 1)
 ```
 
 ```lisp
-foreach(item l_items
+foreach(item items
     a = 1
 )
 ```
 
-变量与列表留在首行，体缩进 4 格。
+`foreach` 的首行尽量保留 `[map*] 变量 列表表达式`；只有这一段超宽时才把列表表达式移到下一行：
+
+```lisp
+foreach(mapcar x list(1 2 3)
+    long_long_command
+)
+```
+
+```lisp
+foreach(mapcar x
+    list(1 2 3)
+    long_long_command
+)
+```
+
+不带映射函数（`map`、`mapc`、`mapcar`、`mapcan`、`maplist`、`mapcon`）时规则相同。多变量 `foreach` 的各个列表表达式同样尽量留在首行。
+
+`for` 的首行保留变量、起始值与结束值，放不下时逐项下移；体缩进 4 格。
 
 ### `cond`
 
@@ -455,6 +472,22 @@ b = 2
 
 默认连续空行压成一个；不主动插入空行。
 
+### 连续赋值
+
+```lisp
+a = 1
+ab = 2  ; ab is a variable
+abc = 33  ; abc is a variable
+```
+
+```lisp
+a   = 1
+ab  = 2   ; ab is a variable
+abc = 33  ; abc is a variable
+```
+
+连续、之间没有空行的赋值语句成组对齐 `=` 与行尾注释；空行、非赋值语句或独立注释会结束分组。对齐后若超出 `--line-width`，该组保持不对齐。关闭 `align-assignments` 分类后不对齐。
+
 ## 明确不格式化（原样保留）
 
 以下结构当前标记为不支持：默认 `opaque` 下包含它的**整个顶层 form** 按原字节保留，并向 stderr 输出警告；`--strict` 下直接报错；`--best-effort` / `safety.unknown = "conservative"` 下整份输入改用保守空白布局。
@@ -473,14 +506,14 @@ b = 2
 
 ## 保守模式
 
-`--skip wrapping` 关闭结构重排，保留原始换行位置，只做：
+不含 `wrapping` 的分类组合（例如 `--cats eol blank-lines indent spacing tight-brackets align-assignments comments`）关闭结构重排，保留原始换行位置，只做：
 
 - 缩进（按括号深度，4 空格）
-- 行内空白归一（`--skip spacing` 保留原间距）
-- 括号内侧空格：默认紧贴；关闭 `tight-brackets` 后按源间距保留，不强制加空格
-- 注释缩进（`--skip comments` 保留原列）
-- 空行归一（`--skip blank-lines` 保留原数量）
-- 行尾与结尾换行（`--skip eol` 保留）
+- 行内空白归一（不含 `spacing` 时保留原间距）
+- 括号内侧空格：默认紧贴；不含 `tight-brackets` 时按源间距保留，不强制加空格
+- 注释缩进（不含 `comments` 时保留原列）
+- 空行归一（不含 `blank-lines` 时保留原数量）
+- 行尾与结尾换行（不含 `eol` 时保留）
 
 该模式适合不想产生大面积 diff 的场景；结构重排仍以默认模式为准。
 

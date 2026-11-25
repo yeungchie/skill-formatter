@@ -90,7 +90,7 @@ skfmt config template > skfmt.toml   # 打印配置模板
 | `--line-width N` | 全局行宽上限；覆盖配置 `format.width`，默认 150 |
 | `--base-indent N` | 指定选区片段或最外层 form 的起始缩进 |
 | `--stdin-path PATH` | stdin 输入对应的真实文件路径 |
-| `--only CATS` / `--skip CATS` | 只启用/跳过分类 |
+| `--cats CAT [CAT ...]` | 只启用列出的分类；空格或逗号分隔、可重复，自动补齐依赖分类 |
 | `--strict` | 任一警告视为错误 |
 | `--best-effort` | 未确认语法使用保守空白布局 |
 | `-v, --verbose` | 向 stderr 输出配置来源与每个输入的状态 |
@@ -134,11 +134,14 @@ skfmt config template > skfmt.toml   # 打印配置模板
 | `blank-lines` | 连续空行压成一个 |
 | `indent` | 4 空格结构缩进 |
 | `spacing` | 行内单空格、尾注释前两空格 |
-| `tight-brackets` | 括号内侧紧贴：`foo(a b)`、`{x y}`；关闭后写 `foo( a b )`、`{ x y }` |
+| `tight-brackets` | 括号内侧紧贴：`foo(a b)`、`{x y}`、`x[i]`；关闭后写 `foo( a b )`、`{ x y }`、`x[ i ]` |
+| `align-assignments` | 连续且无空行的赋值语句对齐 `=` 与行尾注释 |
 | `wrapping` | 结构重排与折行 |
 | `comments` | 独立注释重排缩进 |
 
-`--skip wrapping` 进入保守模式：保留原换行位置，只做缩进、空白、注释、空行与行尾归一。关闭 `indent`、`spacing` 或 `comments` 也会关闭 `wrapping`，并输出警告。
+不含 `wrapping` 的分类组合（例如 `--cats eol blank-lines indent spacing tight-brackets align-assignments comments`）进入保守模式：保留原换行位置，只做缩进、空白、注释、空行与行尾归一。关闭 `indent`、`spacing` 或 `comments` 也会关闭 `wrapping`，并输出警告。
+
+`--cats` 会连续读取后面的分类名；文件或目录路径请放在它前面，或用 `--cats=...` / `--` 结束分类列表。
 
 `--lines` 需要结构重排，因此与关闭 `wrapping` 的组合会直接报错，不会静默忽略。
 
