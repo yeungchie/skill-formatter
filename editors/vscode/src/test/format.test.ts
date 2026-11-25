@@ -105,7 +105,7 @@ test("buildArgs includes config, stdin path and range", () => {
     buildArgs({
       executable: "skfmt",
       configPath: "cfg.toml",
-      extraArgs: ["--skip", "comments"],
+      extraArgs: ["--cats", "eol"],
       stdinPath: "a.il",
       lines: "3:5",
       timeoutMs: 1000,
@@ -118,8 +118,8 @@ test("buildArgs includes config, stdin path and range", () => {
       "a.il",
       "--lines",
       "3:5",
-      "--skip",
-      "comments",
+      "--cats",
+      "eol",
     ],
   );
 });

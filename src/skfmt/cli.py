@@ -47,12 +47,13 @@ def _parse_line_range(text: str, lang: str = "en") -> tuple[int | None, int | No
     return start, end
 
 
-def _parse_categories(text: str, lang: str = "en") -> set[str]:
-    names = {part.strip() for part in text.split(",") if part.strip()}
-    unknown = names - set(CATEGORIES)
+def _parse_categories(text: str, lang: str = "en") -> list[str]:
+    names = [part.strip() for part in text.split(",") if part.strip()]
+    unknown = [name for name in names if name not in CATEGORIES]
     if unknown:
-        joined = ", ".join(sorted(unknown))
-        raise argparse.ArgumentTypeError(tr(lang, "err_category_unknown").format(names=joined))
+        raise argparse.ArgumentTypeError(
+            tr(lang, "err_category_unknown").format(names=", ".join(unknown))
+        )
     return names
 
 
@@ -89,7 +90,7 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     def parse_line_range(value: str) -> tuple[int | None, int | None]:
         return _parse_line_range(value, lang)
 
-    def parse_categories(value: str) -> set[str]:
+    def parse_categories(value: str) -> list[str]:
         return _parse_categories(value, lang)
 
     def parse_width(value: str) -> int:
@@ -132,8 +133,14 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
     )
     common.add_argument("--base-indent", type=int, metavar="N", help=strings["base_indent"])
     common.add_argument("--stdin-path", metavar="PATH", help=strings["stdin_path"])
-    common.add_argument("--only", type=parse_categories, metavar="CATS", help=strings["only"])
-    common.add_argument("--skip", type=parse_categories, metavar="CATS", help=strings["skip"])
+    common.add_argument(
+        "--cats",
+        action="append",
+        nargs="+",
+        type=parse_categories,
+        metavar="CAT",
+        help=strings["cats"].format(categories=", ".join(CATEGORIES)),
+    )
     common.add_argument("--config", type=Path, metavar="PATH", help=strings["config"])
     common.add_argument("--strict", action="store_true", help=strings["strict"])
     common.add_argument("--best-effort", action="store_true", help=strings["best_effort"])
@@ -252,14 +259,12 @@ def build_parser(lang: str | None = None) -> argparse.ArgumentParser:
 
 def _apply_cli_options(args: argparse.Namespace, options: Options) -> Options:
     cats = set(options.categories)
-    if args.only is not None:
-        cats = set(args.only)
+    if args.cats is not None:
+        cats = {name for occurrence in args.cats for token in occurrence for name in token}
         if "wrapping" in cats:
             cats.update({"indent", "spacing", "comments"})
         if "comments" in cats:
             cats.add("indent")
-    if args.skip is not None:
-        cats -= set(args.skip)
     unknown = options.unknown
     if args.strict:
         unknown = "error"
@@ -467,8 +472,6 @@ def _main(arguments: list[str]) -> int:
         return _run_config(args, lang)
 
     write = getattr(args, "write", False)
-    if args.only is not None and args.skip is not None:
-        parser.error(tr(lang, "err_only_skip"))
     if args.strict and args.best_effort:
         parser.error(tr(lang, "err_strict_best_effort"))
     if args.quiet and args.verbose:
@@ -538,6 +541,7 @@ def _main(arguments: list[str]) -> int:
             if result.text != text:
                 print("stdin: " + tr(lang, "would_reformat"))
                 return 1
+            print("stdin: " + tr(lang, "already_formatted"))
             return 0
         sys.stdout.write(result.text)
         _print_verbose(args, "stdin", result.text != text, lang)
@@ -584,7 +588,13 @@ def _main(arguments: list[str]) -> int:
 
     if failures:
         return 2
-    if args.command in {"check", "diff"} and changed:
+    if args.command == "check":
+        if changed:
+            print(tr(lang, "check_changed").format(count=changed, tool=TOOL_NAME))
+            return 1
+        print(tr(lang, "check_clean"))
+        return 0
+    if args.command == "diff" and changed:
         return 1
     return 0
 

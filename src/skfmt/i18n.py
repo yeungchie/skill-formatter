@@ -45,10 +45,9 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "base_indent": "Base indentation for selected fragments or the outermost form.",
         "stdin_path": "Path stdin represents, used to locate {config}.",
-        "only": "Only the given categories; required prerequisites are added.",
-        "skip": (
-            "Skip categories: eol, blank-lines, indent, spacing, wrapping, comments. "
-            "Skipping wrapping, indent, spacing or comments keeps original line breaks."
+        "cats": (
+            "Categories to enable (space or comma separated; repeatable): {categories}. "
+            "Required prerequisites are added. Default: all."
         ),
         "config": "Read settings from PATH instead of searching for {config}.",
         "config_file": "Config file to read or update.",
@@ -66,6 +65,9 @@ TEXTS: dict[str, dict[str, str]] = {
         "force_en": "Force English help and diagnostics.",
         "warning_label": "warning",
         "would_reformat": "would reformat",
+        "already_formatted": "already formatted",
+        "check_clean": "All files are formatted.",
+        "check_changed": "{count} file(s) would be reformatted; run {tool} format to fix.",
         "interrupted": "interrupted",
         "error_label": "error",
         "no_skill_files": "no .il or .ils files found",
@@ -81,7 +83,6 @@ TEXTS: dict[str, dict[str, str]] = {
         "err_category_unknown": "unknown categories: {names}",
         "err_width_integer": "line width must be an integer",
         "err_width_minimum": "line width must be >= 20",
-        "err_only_skip": "--only and --skip are mutually exclusive",
         "err_strict_best_effort": "--strict and --best-effort are mutually exclusive",
         "err_quiet_verbose": "--quiet and --verbose are mutually exclusive",
         "err_language_flags": "--zh and --en are mutually exclusive",
@@ -121,8 +122,9 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "base_indent": "选区片段或最外层 form 的起始缩进。",
         "stdin_path": "stdin 对应的文件路径，用于查找 {config}。",
-        "only": "只启用给定分类；会自动补齐依赖分类。",
-        "skip": "跳过：eol/blank-lines/indent/spacing/wrapping/comments。",
+        "cats": (
+            "启用的分类（空格或逗号分隔，可重复）：{categories}；会自动补齐依赖分类。默认全部。"
+        ),
         "config": "从 PATH 读取配置，不再向上查找 {config}。",
         "config_file": "要读取或写入的配置文件。",
         "strict": "把未支持语法警告视为错误。",
@@ -139,6 +141,9 @@ TEXTS: dict[str, dict[str, str]] = {
         "force_en": "强制英文帮助与诊断。",
         "warning_label": "警告",
         "would_reformat": "需要重新格式化",
+        "already_formatted": "已格式化",
+        "check_clean": "所有文件均已格式化。",
+        "check_changed": "{count} 个文件需要格式化；可运行 {tool} format 修正。",
         "interrupted": "已中断",
         "error_label": "错误",
         "no_skill_files": "未找到 .il 或 .ils 文件",
@@ -154,7 +159,6 @@ TEXTS: dict[str, dict[str, str]] = {
         "err_category_unknown": "未知的格式分类: {names}",
         "err_width_integer": "行宽必须是整数",
         "err_width_minimum": "行宽必须 >= 20",
-        "err_only_skip": "--only 与 --skip 互斥",
         "err_strict_best_effort": "--strict 与 --best-effort 互斥",
         "err_quiet_verbose": "--quiet 与 --verbose 互斥",
         "err_language_flags": "--zh 与 --en 互斥",

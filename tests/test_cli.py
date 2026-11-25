@@ -49,8 +49,10 @@ def test_best_effort_uses_conservative_layout() -> None:
     assert result.stdout == "(+ a b)\n"
 
 
-def test_skipping_required_category_disables_wrapping() -> None:
-    result = run_cli(["format", "--skip", "spacing"], "a=1\n", env_extra={"SKFMT_LANG": "en"})
+def test_missing_required_category_disables_wrapping(tmp_path: Path) -> None:
+    config = tmp_path / "skfmt.toml"
+    config.write_text("[categories]\nspacing = false\n", encoding="utf-8")
+    result = run_cli(["format", "--config", str(config)], "a=1\n", env_extra={"SKFMT_LANG": "en"})
     assert result.returncode == 0
     assert result.stdout == "a=1\n"
     assert "wrapping disabled" in result.stderr
@@ -58,9 +60,10 @@ def test_skipping_required_category_disables_wrapping() -> None:
 
 def test_stdin_eof_is_empty_input() -> None:
     for command in ("format", "check", "diff"):
-        result = run_cli([command], "")
+        result = run_cli([command], "", env_extra={"SKFMT_LANG": "en"})
         assert result.returncode == 0
-        assert result.stdout == ""
+        expected = "stdin: already formatted\n" if command == "check" else ""
+        assert result.stdout == expected
         assert result.stderr == ""
 
 
@@ -143,6 +146,7 @@ def test_help_is_stable_without_color() -> None:
     assert result.returncode == 0
     assert "Usage: skfmt format" in result.stdout
     assert "--line-width" in result.stdout
+    assert "--cats" in result.stdout
     assert "--best-effort" in result.stdout
     assert "Reserved" not in result.stdout
     assert "\x1b[" not in result.stdout
@@ -190,14 +194,37 @@ def test_stdin_path_locates_config(tmp_path: Path) -> None:
     assert result.stdout == 'procedure(foo(a "t")\n  1\n)\n'
 
 
-def test_only_option_enables_one_category() -> None:
+def test_cats_option_enables_listed_categories() -> None:
     source = 'procedure(foo(a "t")\nx=1\n)\n'
-    indent_only = run_cli(["format", "--only", "indent"], source)
+    indent_only = run_cli(["format", "--cats", "indent"], source)
     assert indent_only.returncode == 0
     assert indent_only.stdout == 'procedure(foo(a "t")\n    x=1\n)\n'
-    spacing_only = run_cli(["format", "--only", "spacing"], source)
+    spacing_only = run_cli(["format", "--cats", "spacing"], source)
     assert spacing_only.returncode == 0
     assert spacing_only.stdout == 'procedure(foo(a "t")\nx=1\n)\n'
+
+
+def test_cats_accepts_space_comma_and_repeated_forms() -> None:
+    source = 'procedure(foo(a "t")\nx=1\n)\n'
+    expected = 'procedure(foo(a "t")\n    x=1\n)\n'
+    for args in (
+        ["--cats", "indent"],
+        ["--cats", "indent", "eol"],
+        ["--cats", "indent", "--cats", "eol"],
+        ["--cats", "indent,eol"],
+        ["--cats", "indent,   eol"],
+    ):
+        result = run_cli(["format", *args], source, env_extra={"SKFMT_LANG": "en"})
+        assert result.returncode == 0, args
+        assert result.stdout == expected, args
+
+
+def test_cats_rejects_unknown_names() -> None:
+    result = run_cli(
+        ["format", "--cats", "indent", "nope"], "a=1\n", env_extra={"SKFMT_LANG": "en"}
+    )
+    assert result.returncode == 2
+    assert "unknown categories: nope" in result.stderr
 
 
 def test_quiet_suppresses_warnings() -> None:
@@ -513,7 +540,16 @@ def test_directory_input_expands_recursively(tmp_path: Path) -> None:
     assert result.returncode == 1
     assert str(first) in result.stdout
     assert str(second) in result.stdout
+    assert "2 file(s) would be reformatted" in result.stdout
     assert "skip.txt" not in result.stdout
+
+
+def test_check_reports_clean_result(tmp_path: Path) -> None:
+    path = tmp_path / "a.il"
+    path.write_bytes(b"a = 1\n")
+    result = run_cli(["--en", "check", str(path)])
+    assert result.returncode == 0
+    assert result.stdout.strip() == "All files are formatted."
 
 
 def test_empty_directory_is_an_error(tmp_path: Path) -> None:
