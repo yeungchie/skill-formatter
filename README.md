@@ -76,7 +76,7 @@ skfmt config template > skfmt.toml   # 打印配置模板
 | 子命令 | 说明 |
 | --- | --- |
 | `format` | 格式化文件或 stdin；默认写到 stdout，`-w` 原地写入 |
-| `check` | 报告需要格式化的输入；有差异 exit 1 |
+| `check` | 报告需要格式化的输入并输出结果摘要；有差异 exit 1 |
 | `diff` | 输出 unified diff；有差异 exit 1 |
 | `config` | 打印模板、读取/写入配置值、查看当前生效的配置文件 |
 
