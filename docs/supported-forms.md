@@ -155,17 +155,17 @@ _TypeCache[name]
 ### 花括号体
 
 ```lisp
-errset({ nil ,@l_body } nil)
+{ nil ,@l_body }
 ```
 
 ```lisp
-errset({
+{
     nil
     ,@l_body
-} nil)
+}
 ```
 
-单行时写 `{ x y }`；多行时 `{` 与 `}` 各占边界，体缩进 4 格。
+单行时写 `{ x y }`；作为调用参数参与三档排布，自身仍放不下时 `{` 与 `}` 各占边界，体缩进 4 格。
 
 ### `list` 调用
 
@@ -356,32 +356,35 @@ case(x
 
 ### `errset`
 
-普通体：
+按普通调用处理，不做特殊排版，参数按行宽三档排布：
 
 ```lisp
-errset(
-(foo a)
-nil)
+errset({ nil ,@l_body } nil)
 ```
 
 ```lisp
 errset(
-    foo(a)
+    { nil ,@l_body } nil
+)
+```
+
+```lisp
+errset(
+    { nil ,@l_body }
     nil
 )
 ```
 
-花括号体：
+参数行仍放不下时，花括号体再展开：
 
 ```lisp
-errset({ (foo a) (bar b) } nil)
-```
-
-```lisp
-errset({
-    foo(a)
-    bar(b)
-} nil)
+errset(
+    {
+        nil
+        ,@l_body
+    }
+    nil
+)
 ```
 
 ### `progn` / `unwindProtect` / `setq`

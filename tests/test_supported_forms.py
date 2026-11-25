@@ -17,7 +17,7 @@ FORMS = {
         'case(x\n    ("a"  1)\n    ("bb" 2)\n    (t    3)\n)\n',
     ),
     "let": ("let((len i)\nlen = 1\n)", "let((len i)\n    len = 1\n)\n"),
-    "errset": ("errset(\n(foo a)\nnil\n)", "errset(\n    foo(a)\n    nil\n)\n"),
+    "errset": ("errset(\n(foo a)\nnil\n)", "errset(foo(a) nil)\n"),
     "if-then-else": (
         "if(ca == cb\nthen\ni++\nelse\na = 1\n)",
         "if(ca == cb\nthen\n    i++\nelse\n    a = 1\n)\n",

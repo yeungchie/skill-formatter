@@ -30,7 +30,7 @@ from skfmt.config import load_config
             'case(x\n("a" 1)\n("bb" 2)\n(t 3)\n)',
             'case(x\n    ("a"  1)\n    ("bb" 2)\n    (t    3)\n)\n',
         ),
-        ("errset(\n(foo a)\nnil\n)", "errset(\n    foo(a)\n    nil\n)\n"),
+        ("errset(\n(foo a)\nnil\n)", "errset(foo(a) nil)\n"),
     ],
 )
 def test_basic_layouts(source: str, expected: str) -> None:
@@ -178,6 +178,20 @@ def test_nested_calls_break_outermost_first() -> None:
     )
     assert "foo1(foo2(" not in result
     assert "foo2(foo3(" not in result
+
+
+def test_errset_brace_follows_call_wrapping() -> None:
+    source = "errset({ nil ,@l_body } nil)"
+    assert format_source(source).text == source + "\n"
+    assert format_source(source, Options(width=24)).text == (
+        "errset(\n    { nil ,@l_body } nil\n)\n"
+    )
+    assert format_source(source, Options(width=23)).text == (
+        "errset(\n    { nil ,@l_body }\n    nil\n)\n"
+    )
+    assert format_source(source, Options(width=19)).text == (
+        "errset(\n    {\n        nil\n        ,@l_body\n    }\n    nil\n)\n"
+    )
 
 
 def test_comment_stays_with_following_definition() -> None:

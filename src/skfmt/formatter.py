@@ -334,8 +334,6 @@ class Renderer:
             self._render_cond(node, indent)
         elif head == "if":
             self._render_if(node, indent)
-        elif head == "errset":
-            self._render_errset(node, indent)
         elif head == "inScheme":
             self._render_in_scheme(node, indent)
         elif head == "lambda":
@@ -565,34 +563,6 @@ class Renderer:
             index += 1
         self.out.newline(indent)
         self.out.write(")")
-
-    def _render_errset(self, node: Node, indent: int) -> None:
-        args = node.children
-        if len(args) == 2 and args[0].kind == "plist" and args[0].value == "{":
-            brace = args[0]
-            self.out.write("errset({")
-            if brace.children:
-                self.out.newline(indent + self.options.indent)
-                self._render_block(brace.children, indent + self.options.indent)
-            self.out.newline(indent)
-            self.out.write("} ")
-            flat_flag = self.flat(args[1])
-            if flat_flag is not None:
-                self.out.write(flat_flag)
-            else:
-                self.render(args[1], indent)
-            self.out.write(")")
-            return
-        if len(args) == 2 and not any(a.kind == "comment" for a in args):
-            self.out.write("errset(")
-            self.out.newline(indent + self.options.indent)
-            self.render(args[0], indent + self.options.indent)
-            self.out.newline(indent + self.options.indent)
-            self.render(args[1], indent + self.options.indent)
-            self.out.newline(indent)
-            self.out.write(")")
-            return
-        self._render_generic_call(node, indent)
 
     def _render_in_scheme(self, node: Node, indent: int) -> None:
         self.out.write("inScheme(")
