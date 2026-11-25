@@ -113,6 +113,7 @@ skfmt config template > skfmt.toml   # 打印配置模板
 - CLI 用 `skfmt --version` 输出 `skfmt 0.1.0`。
 - VS Code 扩展与 Vim 插件在格式化前运行解析到的命令的 `--version`，当前最低要求 `>= 0.1.0`；版本过低或无法解析时拒绝格式化并提示升级。
 - 升级 CLI：`uv tool install --force '.[full]'`（或 `uvx skfmt`）。VS Code 需重载窗口；Vim 执行 `:SkfmtRefresh`。
+- 各版本的用户可见变化见 [CHANGELOG.md](CHANGELOG.md)。
 
 `config` 子命令：
 
